@@ -1,3 +1,14 @@
+setwd("/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/data")
+
+figR.d <- readRDS('logbooks/FigR/FigR_data/GRN.rds')
+
+.libPaths('Fig_R_libs')
+
+library("ggplot2")
+library("dplyr")
+library("BuenColors")
+library("FigR")
+
 figR.heatmap <- figR.d %>% 
   ggplot(aes(Corr.log10P,Enrichment.log10P,color=Score)) + 
   ggrastr::geom_point_rast(size=0.01,shape=16) + 
@@ -6,25 +17,27 @@ figR.heatmap <- figR.d %>%
 
 ggsave('logbooks/FigR/FigR_plots/heatmap.png', figR.heatmap)
 
-# Interactive plotting
-#ranks <- rankDrivers(figR.d,score.cut = 2,rankBy = "nTargets",interactive = TRUE)
+# This is interactive
+ranks <- rankDrivers(figR.d,score.cut = 2,rankBy = "nTargets",interactive = TRUE)
+saveRDS(ranks, 'logbooks/FigR/FigR_data/rank_drivers.rds')
 
-
-plt.drivers <- plotDrivers(figR.d, marker='Acvr1')
+plt.drivers <- plotDrivers(figR.d,score.cut = 2,marker = "Lef1")
 ggsave('logbooks/FigR/FigR_plots/plot-drivers.png', plt.drivers)
 
-library(ComplexHeatmap, lib.loc='R_libs')
-complex.heatmap <- plotfigRHeatmap(figR.d = figR.d,
-                score.cut = 1,
+library(ComplexHeatmap)
+library(png)
+png("logbooks/FigR/FigR_plots/complex-heatmap.png")
+
+plotfigRHeatmap(figR.d = figR.d,
+                score.cut = 2,
                 column_names_gp = gpar(fontsize=6), # from ComplexHeatmap
                 show_row_dend = FALSE # from ComplexHeatmap
                 )
+dev.off()
 
-ggsave('logbooks/FigR/FigR_plots/complexheatmap.png', complex.heatmap)
-
-library(networkD3, lib.loc='R_libs')
+library(networkD3)
 library(magrittr)
 library(htmlwidgets)
+library(gplots)
 networks <- plotfigRNetwork(figR.d)
-save(networks, file = "logbooks/FigR_plots/network.rda")
-#saveWidget('logbooks/FigR_plots/network.html')
+save(networks, file = "logbooks/FigR/FigR_data/network-plot.rda")
