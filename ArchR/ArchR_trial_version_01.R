@@ -29,8 +29,13 @@ names(inputFiles) <- "pbmc_granulocyte_sorted_10k"
 ArrowFiles <-readRDS('/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Roya/ArrowFiles/arrowfile.rds')
 ArrowFiles 
 
-#ArchRProject
-proj <- ArchRProject(ArrowFiles)
+# Inferring Doublets
+doubScores <- addDoubletScores(
+    input = ArrowFiles,
+    k = 1, #Refers to how many cells near a "pseudo-doublet" to count.
+    knnMethod = "UMAP", #Refers to the embedding to use for nearest neighbor search with doublet projection.
+    LSIMethod = 1
+)
 
 #Import scRNA
 seRNA <- import10xFeatureMatrix(
