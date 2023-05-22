@@ -1,0 +1,105 @@
+# Set working directory
+setwd("/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/data/output/ArchRinputfiles")
+
+# Files needed for the analyses
+#pbmc_granulocyte_sorted_10k_atac_fragments.tsv.gz 
+#dpbmc_granulocyte_sorted_10k_atac_fragments.tsv.gz.tbi
+#pbmc_granulocyte_sorted_10k_filtered_feature_bc_matrix.h5
+
+suppressPackageStartupMessages(library(ArchR))
+addArchRGenome("hg38")
+
+addArchRThreads(10)
+
+#Get Input Fragment Files
+inputFiles <- getInputFiles("pbmc_granulocyte_sorted_10k")[1]
+
+names(inputFiles) <- "pbmc_granulocyte_sorted_10k"
+
+#Create Arrow Files (disabled here)
+ArrowFiles <- createArrowFiles(inputFiles, force = TRUE)
+
+#ArchRProject
+proj <- ArchRProject(ArrowFiles)
+
+#Import scRNA
+seRNA <- import10xFeatureMatrix(
+  input = c("pbmc_granulocyte_sorted_10k_filtered_feature_bc_matrix.h5"),
+  names = c("pbmc_granulocyte_sorted_10k")
+)
+
+seRNA
+
+#Add scRNA
+proj <- addGeneExpressionMatrix(input = proj, seRNA = seRNA, force = TRUE)
+
+#Filter Cells ###  QC parameters. # FRiP QC value is missing
+proj <- proj[proj$TSSEnrichment >= 4 & proj$nFrags >= 1000 & !is.na(proj$Gex_nUMI)]
+
+
+#Doublet Filtration. Currently disabled just for tutorial. If you want to filter doublets uncomment below.
+proj <- addDoubletScores(proj)
+proj <- filterDoublets(proj, cutEnrich = 1) # is cutEnrich = 1 ok? 
+
+#LSI-ATAC
+proj <- addIterativeLSI(
+  ArchRProj = proj, 
+  clusterParams = list(
+    resolution = 0.2, 
+    sampleCells = 10000,
+    n.start = 10
+  ),
+  saveIterations = FALSE,
+  useMatrix = "TileMatrix", 
+  depthCol = "nFrags",
+  name = "LSI_ATAC"
+)
+
+#LSI-RNA
+proj <- addIterativeLSI(
+  ArchRProj = proj, 
+  clusterParams = list(
+    resolution = 0.2, 
+    sampleCells = 10000,
+    n.start = 10
+  ),
+  saveIterations = FALSE,
+  useMatrix = "GeneExpressionMatrix", 
+  depthCol = "Gex_nUMI",
+  varFeatures = 2500,
+  firstSelection = "variable",
+  binarize = FALSE,
+  name = "LSI_RNA"
+)
+
+#Combined Dims
+proj <- addCombinedDims(proj, reducedDims = c("LSI_ATAC", "LSI_RNA"), name =  "LSI_Combined")
+
+#UMAPs
+proj <- addUMAP(proj, reducedDims = "LSI_ATAC", name = "UMAP_ATAC", minDist = 0.8, force = TRUE)
+
+proj <- addUMAP(proj, reducedDims = "LSI_Combined", name = "UMAP_Combined", minDist = 0.8, force = TRUE)
+
+#Add Clusters
+proj <- addClusters(proj, reducedDims = "LSI_Combined", name = "Clusters", resolution = 0.4, force = TRUE)
+
+#Plot Embedding
+p1 <- plotEmbedding(proj, name = "Clusters", embedding = "UMAP_ATAC", size = 1.5, labelAsFactors=F, labelMeans=F)
+
+p2 <- plotEmbedding(proj, name = "Clusters", embedding = "UMAP_RNA", size = 1.5, labelAsFactors=F, labelMeans=F)
+
+p3 <- plotEmbedding(proj, name = "Clusters", embedding = "UMAP_Combined", size = 1.5, labelAsFactors=F, labelMeans=F)
+
+#Print Plots
+p1
+p2
+p3
+
+#Save Plot
+plotPDF(p1, p2, p3, name = "UMAP-scATAC-scRNA-Combined", addDOC = FALSE)
+
+#Print Session Info
+sessionInfo()
+
+
+
