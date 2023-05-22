@@ -8,8 +8,8 @@ setwd("/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_
 
 suppressPackageStartupMessages(library(ArchR))
 addArchRGenome("hg38")
+addArchRThreads(16)
 
-addArchRThreads(10)
 
 #Get Input Fragment Files
 inputFiles <- getInputFiles("pbmc_granulocyte_sorted_10k")[1]
