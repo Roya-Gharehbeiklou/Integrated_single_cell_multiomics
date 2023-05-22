@@ -1,14 +1,15 @@
 # Set working directory
-setwd("/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/data/output/ArchRinputfiles")
+setwd("/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Roya")
 
-# Files needed for the analyses
-#pbmc_granulocyte_sorted_10k_atac_fragments.tsv.gz 
-#dpbmc_granulocyte_sorted_10k_atac_fragments.tsv.gz.tbi
-#pbmc_granulocyte_sorted_10k_filtered_feature_bc_matrix.h5
+# Set the library path
+.libPaths('/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/data/ArchR_libs')
 
-suppressPackageStartupMessages(library(ArchR))
+library(ArchR, lib.loc="/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/data/ArchR_libs")
+#ArchR::installExtraPackages()
+
+set.seed(1)
 addArchRGenome("hg38")
-addArchRThreads(16)
+
 
 
 #Get Input Fragment Files
@@ -16,20 +17,23 @@ inputFiles <- getInputFiles("pbmc_granulocyte_sorted_10k")[1]
 
 names(inputFiles) <- "pbmc_granulocyte_sorted_10k"
 
-# #Create Arrow Files
-# ArrowFiles <- createArrowFiles(
-#   inputFiles = inputFile,
-#   sampleNames = names(inputFile),
-#   minTSS = 4,
-#   minFrags = 1000,
-#   force = TRUE
-# )
+# Create Arrow Files and setting QC values 
+ArrowFiles <- createArrowFiles(
+  inputFiles = inputFile,
+  sampleNames = names(inputFile),
+  minTSS = 4,
+  minFrags = 1000,
+  force = TRUE
+)
 
-# ArrowFiles
-ArrowFiles <-readRDS('/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Roya/ArrowFiles/arrowfile.rds')
-ArrowFiles 
+
+ArrowFiles
 
 # Inferring Doublets
+# Had to load IRanges seperately
+library(IRanges, lib.loc='/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/data/ArchR_libs')
+# Problem with seqnames, had to load it this way
+seqnames <- GenomicRanges::seqnames
 doubScores <- addDoubletScores(
     input = ArrowFiles,
     k = 1, #Refers to how many cells near a "pseudo-doublet" to count.
