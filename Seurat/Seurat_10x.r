@@ -1,12 +1,6 @@
 
-# module load RPlus
-# R
-# Data
-#/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/data/output/raw_feature_bc_matrix
-
 # Set working directory
 setwd("/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Karina")
-
 library(dplyr)
 library(Seurat)
 library(patchwork)
@@ -47,9 +41,7 @@ plot2 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "nFeature_RNA"
 plot1 + plot2
 #dev.off()
 
-
 #pbmc1 <- subset(pbmc, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
-
 
 ### Define a function to identify cells that are outliers based on certain MAD from the median
 mad_function <- function(seurat, column, number_mad){
@@ -86,8 +78,112 @@ dim(seurat_final) #26412  1671
 
 ### Save the Seurat Object
 saveRDS(seurat_final, "Seurat_singlets_QCfiltered.rds")
+#seurat_final <- readRDS("Seurat_singlets_QCfiltered.rds")
 
 # Visualize QC metrics as a violin plot and create a PDF of the FILTERED DATA
 #pdf("Violin_plot_QC_filtered.pdf", width=15, height=10) 
 VlnPlot(seurat_final, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
 #dev.off()
+
+### Normalizing the data
+pbmc <- NormalizeData(seurat_final, normalization.method = "LogNormalize", scale.factor = 10000)
+
+### Identification of highly variable features (feature selection)
+pbmc <- FindVariableFeatures(pbmc, selection.method = "vst", nfeatures = 2000)
+
+# Identify the 10 most highly variable genes
+top10 <- head(VariableFeatures(pbmc), 10)
+
+# plot variable features with and without labels
+#pdf("Variable_features.pdf", width=15, height=10) 
+plot1 <- VariableFeaturePlot(pbmc)
+plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
+plot1 + plot2
+#dev.off()
+
+#Scaling the data
+all.genes <- rownames(pbmc)
+pbmc <- ScaleData(pbmc, features = all.genes)
+
+# Perform linear dimensional reduction
+pbmc <- RunPCA(pbmc, features = VariableFeatures(object = pbmc))
+# Examine and visualize PCA results a few different ways
+print(pbmc[["pca"]], dims = 1:5, nfeatures = 5)
+
+VizDimLoadings(pbmc, dims = 1:2, reduction = "pca")
+
+#pdf("DimPlot.pdf", width=15, height=10) 
+DimPlot(pbmc, reduction = "pca")
+#dev.off()
+
+#pdf("DimHeatmap.pdf", width=15, height=10)
+DimHeatmap(pbmc, dims = 1, cells = 500, balanced = TRUE)
+#dev.off()
+
+#### Determine the ‘dimensionality’ of the dataset
+# NOTE: This process can take a long time for big datasets, comment out for expediency. More
+# approximate techniques such as those implemented in ElbowPlot() can be used to reduce
+# computation time
+pbmc <- JackStraw(pbmc, num.replicate = 100)
+pbmc <- ScoreJackStraw(pbmc, dims = 1:20)
+
+pdf("JackStrawPlot.pdf", width=15, height=10) 
+JackStrawPlot(pbmc, dims = 1:15)
+dev.off()
+
+pdf("ElbowPlot.pdf", width=15, height=10) 
+ElbowPlot(pbmc)
+dev.off()
+
+#Cluster the cells
+pbmc <- FindNeighbors(pbmc, dims = 1:10)
+pbmc <- FindClusters(pbmc, resolution = 0.5)
+head(Idents(pbmc), 5)
+
+# Run non-linear dimensional reduction (UMAP/tSNE)
+# If you haven't installed UMAP, you can do so via reticulate::py_install(packages =
+# 'umap-learn')
+pbmc <- RunUMAP(pbmc, dims = 1:10)
+
+pdf("UMAP.pdf", width=15, height=10) 
+DimPlot(pbmc, reduction = "umap")
+dev.off()
+
+saveRDS(pbmc, file = "pbmc_tutorial.rds")
+
+#Finding differentially expressed features (cluster biomarkers)
+# find all markers of cluster 2
+cluster2.markers <- FindMarkers(pbmc, ident.1 = 2, min.pct = 0.25)
+head(cluster2.markers, n = 5)
+
+# find all markers distinguishing cluster 5 from clusters 0 and 3
+cluster5.markers <- FindMarkers(pbmc, ident.1 = 5, ident.2 = c(0, 3), min.pct = 0.25)
+head(cluster5.markers, n = 5)
+
+
+# find markers for every cluster compared to all remaining cells, report only the positive
+# ones
+pbmc.markers <- FindAllMarkers(pbmc, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+pbmc.markers %>%
+    group_by(cluster) %>%
+    slice_max(n = 2, order_by = avg_log2FC)
+
+cluster0.markers <- FindMarkers(pbmc, ident.1 = 0, logfc.threshold = 0.25, test.use = "roc", only.pos = TRUE)
+
+pdf("FeaturePlot.pdf", width=15, height=10) 
+FeaturePlot(pbmc, features = c("LEF1", "BCL11B", "VCAN", "PLCB1", "CDKN1C", "FCGR3A", "CCSER1", "HLA-DQA1","CAMK4",
+    "IL7R"))
+dev.off()
+
+pbmc.markers %>%
+    group_by(cluster) %>%
+    top_n(n = 10, wt = avg_log2FC) -> top10
+pdf("DoHeatmap.pdf", width=15, height=10)
+DoHeatmap(pbmc, features = top10$gene) + NoLegend()
+dev.off()
+    
+new.cluster.ids <- c("Naive CD4 T", "CD14+ Mono", "Memory CD4 T", "B", "CD8 T", "FCGR3A+ Mono",
+    "NK", "DC", "Platelet")
+names(new.cluster.ids) <- levels(pbmc)
+#pbmc <- RenameIdents(pbmc, new.cluster.ids)
+DimPlot(pbmc, reduction = "umap", label = TRUE, pt.size = 0.5) + NoLegend()
