@@ -1,12 +1,13 @@
 # Set working directory
-setwd("/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/data/output/ArchRinputfiles")
+setwd("/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Roya")
 
-# Files needed for the analyses
-#pbmc_granulocyte_sorted_10k_atac_fragments.tsv.gz 
-#dpbmc_granulocyte_sorted_10k_atac_fragments.tsv.gz.tbi
-#pbmc_granulocyte_sorted_10k_filtered_feature_bc_matrix.h5
+# Set the library path
+.libPaths('/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/data/ArchR_libs')
 
-suppressPackageStartupMessages(library(ArchR))
+library(ArchR, lib.loc="/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/data/ArchR_libs")
+#ArchR::installExtraPackages()
+
+set.seed(1)
 addArchRGenome("hg38")
 addArchRThreads(16)
 
