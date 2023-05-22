@@ -16,8 +16,18 @@ inputFiles <- getInputFiles("pbmc_granulocyte_sorted_10k")[1]
 
 names(inputFiles) <- "pbmc_granulocyte_sorted_10k"
 
-#Create Arrow Files (disabled here)
-ArrowFiles <- createArrowFiles(inputFiles, force = TRUE)
+# #Create Arrow Files
+# ArrowFiles <- createArrowFiles(
+#   inputFiles = inputFile,
+#   sampleNames = names(inputFile),
+#   minTSS = 4,
+#   minFrags = 1000,
+#   force = TRUE
+# )
+
+# ArrowFiles
+ArrowFiles <-readRDS('/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Roya/ArrowFiles/arrowfile.rds')
+ArrowFiles 
 
 #ArchRProject
 proj <- ArchRProject(ArrowFiles)
