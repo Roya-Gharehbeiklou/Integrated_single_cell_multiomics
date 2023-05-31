@@ -9,8 +9,6 @@
 #SBATCH --export=NONE
 #SBATCH --get-user-env=L
 
-cd /groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023//groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Martijn/Integrated_single_cell_multiomics/logbooks-martijn/FigR_10X_PBMC
-
 module load RPlus
 
 Rscript FigR-peak-cor.R &> FigR-peak-cor.txt
