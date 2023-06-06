@@ -1,0 +1,386 @@
+[1] "/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/data"
+
+Loading required package: stats4
+Loading required package: BiocGenerics
+
+Attaching package: ‘BiocGenerics’
+
+The following objects are masked from ‘package:stats’:
+
+    IQR, mad, sd, var, xtabs
+
+The following objects are masked from ‘package:base’:
+
+    anyDuplicated, aperm, append, as.data.frame, basename, cbind,
+    colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
+    get, grep, grepl, intersect, is.unsorted, lapply, Map, mapply,
+    match, mget, order, paste, pmax, pmax.int, pmin, pmin.int,
+    Position, rank, rbind, Reduce, rownames, sapply, setdiff, sort,
+    table, tapply, union, unique, unsplit, which.max, which.min
+
+
+Attaching package: ‘S4Vectors’
+
+The following objects are masked from ‘package:Matrix’:
+
+    expand, unname
+
+The following objects are masked from ‘package:base’:
+
+    expand.grid, I, unname
+
+Loading required package: IRanges
+Loading required package: SummarizedExperiment
+Loading required package: MatrixGenerics
+Loading required package: matrixStats
+
+Attaching package: ‘MatrixGenerics’
+
+The following objects are masked from ‘package:matrixStats’:
+
+    colAlls, colAnyNAs, colAnys, colAvgsPerRowSet, colCollapse,
+    colCounts, colCummaxs, colCummins, colCumprods, colCumsums,
+    colDiffs, colIQRDiffs, colIQRs, colLogSumExps, colMadDiffs,
+    colMads, colMaxs, colMeans2, colMedians, colMins, colOrderStats,
+    colProds, colQuantiles, colRanges, colRanks, colSdDiffs, colSds,
+    colSums2, colTabulates, colVarDiffs, colVars, colWeightedMads,
+    colWeightedMeans, colWeightedMedians, colWeightedSds,
+    colWeightedVars, rowAlls, rowAnyNAs, rowAnys, rowAvgsPerColSet,
+    rowCollapse, rowCounts, rowCummaxs, rowCummins, rowCumprods,
+    rowCumsums, rowDiffs, rowIQRDiffs, rowIQRs, rowLogSumExps,
+    rowMadDiffs, rowMads, rowMaxs, rowMeans2, rowMedians, rowMins,
+    rowOrderStats, rowProds, rowQuantiles, rowRanges, rowRanks,
+    rowSdDiffs, rowSds, rowSums2, rowTabulates, rowVarDiffs, rowVars,
+    rowWeightedMads, rowWeightedMeans, rowWeightedMedians,
+    rowWeightedSds, rowWeightedVars
+
+Loading required package: GenomicRanges
+Loading required package: Biobase
+Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    'browseVignettes()'. To cite Bioconductor, see
+    'citation("Biobase")', and for packages 'citation("pkgname")'.
+
+
+Attaching package: ‘Biobase’
+
+The following object is masked from ‘package:MatrixGenerics’:
+
+    rowMedians
+
+The following objects are masked from ‘package:matrixStats’:
+
+    anyMissing, rowMedians
+
+Loading required package: dplyr
+
+Attaching package: ‘dplyr’
+
+The following object is masked from ‘package:Biobase’:
+
+    combine
+
+The following objects are masked from ‘package:GenomicRanges’:
+
+    intersect, setdiff, union
+
+The following object is masked from ‘package:matrixStats’:
+
+    count
+
+The following object is masked from ‘package:GenomeInfoDb’:
+
+    intersect
+
+The following objects are masked from ‘package:IRanges’:
+
+    collapse, desc, intersect, setdiff, slice, union
+
+The following objects are masked from ‘package:S4Vectors’:
+
+    first, intersect, rename, setdiff, setequal, union
+
+The following objects are masked from ‘package:BiocGenerics’:
+
+    combine, intersect, setdiff, union
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+Loading required package: cowplot
+Loading required package: foreach
+Loading required package: iterators
+Loading required package: parallel
+Loading required package: MASS
+
+Attaching package: ‘MASS’
+
+The following object is masked from ‘package:dplyr’:
+
+    select
+
+Loading required package: Biostrings
+Loading required package: XVector
+
+Attaching package: ‘Biostrings’
+
+The following object is masked from ‘package:base’:
+
+    strsplit
+
+Loading required package: rtracklayer
+
+Attaching package: ‘sp’
+
+The following object is masked from ‘package:IRanges’:
+
+    %over%
+
+
+Attaching package: ‘SeuratObject’
+
+The following object is masked from ‘package:SummarizedExperiment’:
+
+    Assays
+
+
+Attaching package: ‘Seurat’
+
+The following object is masked from ‘package:SummarizedExperiment’:
+
+    Assays
+
+
+                                                   / |
+                                                 /    \
+            .                                  /      |.
+            \\\                              /        |.
+              \\\                          /           `|.
+                \\\                      /              |.
+                  \                    /                |\
+                  \\#####\           /                  ||
+                ==###########>      /                   ||
+                 \\##==......\    /                     ||
+            ______ =       =|__ /__                     ||      \\\
+        ,--' ,----`-,__ ___/'  --,-`-===================##========>
+       \               '        ##_______ _____ ,--,__,=##,__   ///
+        ,    __==    ___,-,__,--'#'  ==='      `-'    | ##,-/
+        -,____,---'       \\####\\________________,--\\_##,/
+           ___      .______        ______  __    __  .______      
+          /   \     |   _  \      /      ||  |  |  | |   _  \     
+         /  ^  \    |  |_)  |    |  ,----'|  |__|  | |  |_)  |    
+        /  /_\  \   |      /     |  |     |   __   | |      /     
+       /  _____  \  |  |\  \\___ |  `----.|  |  |  | |  |\  \\___.
+      /__/     \__\ | _| `._____| \______||__|  |__| | _| `._____|
+    
+ArchR : Version 1.0.2
+For more information see our website : www.ArchRProject.com
+If you encounter a bug please report : https://github.com/GreenleafLab/ArchR/issues
+Loading Required Packages...
+	Loading Package : grid v4.2.1
+	Loading Package : gridExtra v2.3
+	Loading Package : gtools v3.9.4
+	Loading Package : gtable v0.3.3
+Failed with error:  ‘Package ‘gtable’ version 0.3.3 cannot be unloaded:
+ Error in unloadNamespace(package) : namespace ‘gtable’ is imported by ‘gridExtra’, ‘patchwork’, ‘ggplot2’ so cannot be unloaded
+’
+	Loading Package : ggplot2 v3.4.2
+	Loading Package : magrittr v2.0.3
+	Loading Package : plyr v1.8.8
+	Loading Package : stringr v1.5.0
+	Loading Package : data.table v1.14.8
+Failed with error:  ‘Package ‘data.table’ version 1.14.8 cannot be unloaded:
+ Error in unloadNamespace(package) : namespace ‘data.table’ is imported by ‘ArchR’, ‘plotly’ so cannot be unloaded
+’
+	Loading Package : matrixStats v0.63.0
+	Loading Package : S4Vectors v0.36.2
+	Loading Package : GenomicRanges v1.50.2
+	Loading Package : BiocGenerics v0.44.0
+	Loading Package : Matrix v1.5.4
+	Loading Package : Rcpp v1.0.10
+Failed with error:  ‘Package ‘Rcpp’ version 1.0.10 cannot be unloaded:
+ Error in unloadNamespace(package) : namespace ‘Rcpp’ is imported by ‘uwot’, ‘RcppAnnoy’, ‘ArchR’, ‘TFMPvalue’, ‘later’, ‘motifmatchr’, ‘ggrepel’, ‘SeuratObject’, ‘plyr’, ‘httpuv’, ‘reshape2’, ‘promises’, ‘Seurat’, ‘chromVAR’, ‘Rtsne’, ‘reticulate’ so cannot be unloaded
+’
+	Loading Package : SummarizedExperiment v1.28.0
+	Loading Package : rhdf5 v2.42.1
+[1] 26412 11939
+Importing Feature Matrix 1 of 1
+Re-ordering RNA matricies for consistency.
+class: RangedSummarizedExperiment 
+dim: 36578 11898 
+metadata(0):
+assays(1): counts
+rownames(36578): MIR1302-2HG FAM138A ... AC007325.4 AC007325.2
+rowData names(5): feature_type genome id interval name
+colnames(11898): #AAACAGCCAAGGAATC-1 #AAACAGCCAATCCCTT-1 ...
+  #TTTGTTGGTTGGTTAG-1 #TTTGTTGGTTTGCAGA-1
+colData names(0):
+[1] 36578 11504
+[1] 26412 11504
+gdata: read.xls support for 'XLS' (Excel 97-2004) files ENABLED.
+
+gdata: Unable to load perl libaries needed by read.xls()
+gdata: to support 'XLSX' (Excel 2007+) files.
+
+gdata: Run the function 'installXLSXsupport()'
+gdata: to automatically download and install the perl
+gdata: libaries needed to support Excel XLS and XLSX formats.
+
+Attaching package: ‘gdata’
+
+The following object is masked from ‘package:gridExtra’:
+
+    combine
+
+The following objects are masked from ‘package:dplyr’:
+
+    combine, first, last
+
+The following object is masked from ‘package:SummarizedExperiment’:
+
+    trim
+
+The following object is masked from ‘package:Biobase’:
+
+    combine
+
+The following object is masked from ‘package:GenomicRanges’:
+
+    trim
+
+The following objects are masked from ‘package:IRanges’:
+
+    startsWith, trim
+
+The following objects are masked from ‘package:S4Vectors’:
+
+    first, first<-
+
+The following object is masked from ‘package:BiocGenerics’:
+
+    combine
+
+The following object is masked from ‘package:stats4’:
+
+    nobs
+
+The following object is masked from ‘package:stats’:
+
+    nobs
+
+The following object is masked from ‘package:utils’:
+
+    object.size
+
+The following object is masked from ‘package:base’:
+
+    startsWith
+
+Assuming paired scATAC/scRNA-seq data ..
+Matrix object input detectedCentering counts for cells sequentially in groups of size  1000  ..
+
+Computing centered counts for cells:  1  to  1000 ..
+Computing centered counts per cell using mean reads in features ..
+
+Computing centered counts for cells:  1001  to  2000 ..
+Computing centered counts per cell using mean reads in features ..
+
+Computing centered counts for cells:  2001  to  3000 ..
+Computing centered counts per cell using mean reads in features ..
+
+Computing centered counts for cells:  3001  to  4000 ..
+Computing centered counts per cell using mean reads in features ..
+
+Computing centered counts for cells:  4001  to  5000 ..
+Computing centered counts per cell using mean reads in features ..
+
+Computing centered counts for cells:  5001  to  6000 ..
+Computing centered counts per cell using mean reads in features ..
+
+Computing centered counts for cells:  6001  to  7000 ..
+Computing centered counts per cell using mean reads in features ..
+
+Computing centered counts for cells:  7001  to  8000 ..
+Computing centered counts per cell using mean reads in features ..
+
+Computing centered counts for cells:  8001  to  9000 ..
+Computing centered counts per cell using mean reads in features ..
+
+Computing centered counts for cells:  9001  to  10000 ..
+Computing centered counts per cell using mean reads in features ..
+
+Computing centered counts for cells:  10001  to  11000 ..
+Computing centered counts per cell using mean reads in features ..
+
+Computing centered counts for cells:  11001  to  11504 ..
+Computing centered counts per cell using mean reads in features ..
+
+Merging results..
+Done!
+Peaks with 0 accessibility across cells exist ..
+Removing these peaks prior to running correlations ..
+Important: peak indices in returned gene-peak maps are relative to original input SE
+Genes with 0 expression across cells exist ..
+Removing these genes prior to running correlations ..
+Number of peaks in ATAC data: 29566 
+Number of genes in RNA data: 26405 
+
+Num genes overlapping TSS annotation and RNA matrix being considered:  17435 
+
+Taking peak summits from peak windows ..
+Finding overlapping peak-gene pairs ..
+Found  56642 total gene-peak pairs for given TSS window ..
+Number of peak summits that overlap any gene TSS window:  23173 
+Number of gene TSS windows that overlap any peak summit:  16674 
+
+Determining background peaks ..
+Using  100  iterations ..
+
+Computing gene-peak correlations ..
+Running pairs:  1 to 5000 
+Running in parallel using  21 cores ..
+Computing observed correlations ..
+Finished!
+
+Time Elapsed:  6.864905834198 secs 
+
+Computing background correlations ..
+
+Time Elapsed:  11.6802014549573 mins 
+
+Running pairs:  5001 to 10000 
+Running in parallel using  21 cores ..
+Computing observed correlations ..
+Finished!
+
+Time Elapsed:  5.12275815010071 secs 
+
+Computing background correlations ..
+
+Time Elapsed:  11.5492146293322 mins 
+
+Running pairs:  10001 to 15000 
+Running in parallel using  21 cores ..
+Computing observed correlations ..
+Finished!
+
+Time Elapsed:  5.1286199092865 secs 
+
+Computing background correlations ..
+
+Time Elapsed:  9.34460210402807 mins 
+
+Running pairs:  15001 to 20000 
+Running in parallel using  21 cores ..
+Computing observed correlations ..
+Finished!
+
+Time Elapsed:  4.85851836204529 secs 
+
+Computing background correlations ..
