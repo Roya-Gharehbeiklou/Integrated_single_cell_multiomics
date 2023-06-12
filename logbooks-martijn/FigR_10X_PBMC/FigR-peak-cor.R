@@ -64,7 +64,7 @@ head(RNAmat)
 ATAC.data <- readRDS('../Users/Roya/Save-ArchR-Project_subSet_QC_Frip.rds')
 getAvailableMatrices(ATAC.data)
 
-gene.score.matrix <- getMatrixFromProject(
+ATACgene.score.matrix <- getMatrixFromProject(
   ArchRProj = ATAC.data,
   useMatrix = "GeneScoreMatrix",
   useSeqnames = NULL,
@@ -73,6 +73,8 @@ gene.score.matrix <- getMatrixFromProject(
   threads = getArchRThreads(),
   logFile = createLogFile("getMatrixFromProject")
 )
+
+colnames(ATACgene.score.matrix) <- gsub("pbmc_granulocyte_sorted_10k_HG38#","",colnames(ATACgene.score.matrix))
 
 # Add feature matrix to ArchR project
 #fL <- getFragmentsFromProject(ATAC.data)
@@ -148,8 +150,12 @@ library(pbmcapply, lib.loc="Fig_R_libs")
 #library(gdata)
 ATAC.se <- ATAC.se[startsWith(rowData(ATAC.se)$interval, 'c')]
 
+# Subset ATACgene.score.matrix also
+ATACgene.score.matrix <- ATACgene.score.matrix[,colnames(ATACgene.score.matrix) %in% cellsToKeep]
+saveRDS(ATACgene.score.matrix, '../Users/Roya/Portal_input/gene_activity_ATAC.rds')
+
 # Save for portal
-saveRDS(object=ATAC.se, file='../Users/Roya/Portal_input/count_matrix_atac.rds')
+saveRDS(object=RNAmat, file='../Users/Roya/Portal_input/count_matrix_RNA.rds')
 
 # Don't run interactively
 cisCorr <- FigR::runGenePeakcorr(ATAC.se = ATAC.se,
