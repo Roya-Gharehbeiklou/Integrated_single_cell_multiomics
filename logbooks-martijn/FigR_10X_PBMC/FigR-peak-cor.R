@@ -6,26 +6,20 @@ getwd()
 ## For Singularity container
 ## Load required packages
 
-# library(Matrix)
 # library(chromVAR)
-# library(motifmatchr)
-# library(ggplot2)
 # library(S4Vectors)
 # library(GenomeInfoDb)
 # library(FigR)
 
-# ## More dependencies
+# # ## More dependencies
 # library(FNN)
 
-## Even more dependencies
-# library(doParallel)
+# ## Even more dependencies
 # library(BuenColors)
 # library(BSgenome)
 # library(BSgenome.Hsapiens.UCSC.hg38)
-# library(sp)
 # library(SeuratObject)
 # library(Seurat)
-# library(rhdf5)
 # library(ArchR)
 # library(SummarizedExperiment)
 
@@ -60,18 +54,29 @@ addArchRThreads(threads = 21)
 
 seurat.object <- readRDS('../Users/Dilya/azimuth_results/pbmc_Seurat_Azimuth_for_figR.rds')
 RNAmat <- seurat.object@assays$RNA@data
+RNAmat <- NormalizeData(RNAmat)
 dim(RNAmat)
 
-ATAC.data.example <- readRDS('logbooks/FigR/FigR_build_in_data/shareseq_skin_SE_final.rds')
-#ATAC.se <- ArchR::import10xFeatureMatrix('output/pbmc_granulocyte_sorted_10k_filtered_feature_bc_matrix.h5', names='')
-#ATAC.se
+head(RNAmat)
+
+# ATAC.data.example <- readRDS('logbooks/FigR/FigR_build_in_data/shareseq_skin_SE_final.rds')
 
 ATAC.data <- readRDS('../Users/Roya/Save-ArchR-Project_subSet_QC_Frip.rds')
 getAvailableMatrices(ATAC.data)
 
+gene.score.matrix <- getMatrixFromProject(
+  ArchRProj = ATAC.data,
+  useMatrix = "GeneScoreMatrix",
+  useSeqnames = NULL,
+  verbose = TRUE,
+  binarize = FALSE,
+  threads = getArchRThreads(),
+  logFile = createLogFile("getMatrixFromProject")
+)
+
 # Add feature matrix to ArchR project
-fL <- getFragmentsFromProject(ATAC.data)
-granges <- fL[[1]]
+#fL <- getFragmentsFromProject(ATAC.data)
+#granges <- fL[[1]]
 
 # Load summarized experiment
 ATAC.se <- ArchR::import10xFeatureMatrix('output/pbmc_granulocyte_sorted_10k_filtered_feature_bc_matrix.h5', names='')
@@ -133,7 +138,7 @@ ATAC.se@colData <- DataFrame(celltypes.barcode)
 dim(ATAC.se)
 dim(RNAmat)
 
-library(pbmcapply, lib.loc="R_libs")
+library(pbmcapply, lib.loc="Fig_R_libs")
 #library(BSgenome, lib.loc='Fig_R_libs')
 #library(BSgenome.Hsapiens.UCSC.hg38, lib.loc='Fig_R_libs')
 
@@ -142,6 +147,9 @@ library(pbmcapply, lib.loc="R_libs")
 
 #library(gdata)
 ATAC.se <- ATAC.se[startsWith(rowData(ATAC.se)$interval, 'c')]
+
+# Save for portal
+saveRDS(object=ATAC.se, file='../Users/Roya/Portal_input/count_matrix_atac.rds')
 
 # Don't run interactively
 cisCorr <- FigR::runGenePeakcorr(ATAC.se = ATAC.se,
@@ -175,6 +183,14 @@ dorcMat <- getDORCScores(ATAC.se = ATAC.se, # Has to be same SE as used in previ
                          nCores = 21)
 
 dim(dorcMat)
+
+## Load cisTopic
+
+
+
+cisAssign <- readRDS("../Users/Martijn/Integrated_single_cell_multiomics/logbooks-martijn/cisTopic/cisTopicObject.rds")
+
+cisAssign <- cisAssign[cellsToKeep,]
 
 # Smooth dorc scores using cell KNNs (k=30)
 #dorcMat.s <- smoothScoresNN(NNmat = cellkNN[,1:30],mat = dorcMat,nCores = 4)
