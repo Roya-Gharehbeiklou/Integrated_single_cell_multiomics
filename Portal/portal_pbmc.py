@@ -5,25 +5,8 @@ import rds2py
 import anndata2ri
 import h5py
 import anndata as ad
-import rpy2.robjects as ro
 
-ro.r['library']("DropSeq.util")
-ro.r['library']("Seurat")
-ro.r['library']("SingleCellExperiment")
-ro.r.assign("obj.path", "pbmc.RData")
-ro.r("load(obj.path)")
-ro.r("cnt <- pbmc@assays$RNA@counts")
-ro.r("celltype <- as.vector(pbmc$celltype)")
-ro.r("rm(pbmc)")
-ro.r("obj_sc <- CreateSeuratObject(counts=cnt)")
-ro.r("names(celltype) <- colnames(x = obj_sc)")
-ro.r("obj_sc <- AddMetaData(object = obj_sc, metadata = celltype, col.name = 'celltype')")
-
-ro.r("sce <- as.SingleCellExperiment(obj_sc)")
-anndata2ri.activate()
-adata_sc = ro.r('as(sce, "SingleCellExperiment")')
-
-adata_RNA = adata_sc
+adata_RNA = ad.read_hdf('gene_scores_ATACassays.h5', key="assay001")
 print(adata_RNA)
 
 
