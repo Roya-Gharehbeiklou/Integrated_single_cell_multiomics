@@ -45,7 +45,7 @@ seqnames <- GenomicRanges::seqnames
 
 doubScores <- addDoubletScores(
     input = ArrowFiles,
-    k = 1, #Refers to how many cells near a "pseudo-doublet" to count.
+    k = 10,
     knnMethod = "UMAP", #Refers to the embedding to use for nearest neighbor search with doublet projection.
     LSIMethod = 1
 )
