@@ -1,32 +1,26 @@
 import portal
 import scanpy as sc
 import scipy.sparse as sp
-import numpy as np
 import rds2py
-import scipy.sparse as ss
-import rpy2.robjects as robjects
 import h5py
-import anndata
+import anndata as ad
 
 
 count_matrix_RNA = rds2py.read_rds('count_matrix_RNA.rds')
 sp_rna_data = rds2py.as_sparse_matrix(count_matrix_RNA)
 
-# Convert the sparse matrix to CSR format
+# # Convert the sparse matrix to CSR format
 sparse_matrix = sp.csr_matrix(sp_rna_data)
 
-adata_RNA = sc.AnnData(X=sp_rna_data)
-print(adata_RNA.obs)
+adata_RNA = sc.AnnData(X=sp_rna_data.transpose())
+print(adata_RNA)
 
 
-h5 = h5py.File('gene_scores_ATACassays.h5', 'r')
-se_data_ATAC = h5["assay001"]
-np_data_ATA = se_data_ATAC[()]
+adata_ATAC = ad.read_hdf('gene_scores_ATACassays.h5', key="assay001")
+print(adata_ATAC)
 
-adata_ATAC = anndata.AnnData(X=np_data_ATA)
 
 # Print the shape of the AnnData object
-print(adata_ATAC.obs)
 
 # Create a Portal model
 model = portal.model.Model()
