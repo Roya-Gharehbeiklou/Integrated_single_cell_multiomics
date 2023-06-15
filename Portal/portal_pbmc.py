@@ -2,17 +2,11 @@ import portal
 import scanpy as sc
 import scipy.sparse as sp
 import rds2py
+import anndata2ri
 import h5py
 import anndata as ad
 
-
-count_matrix_RNA = rds2py.read_rds('count_matrix_RNA.rds')
-sp_rna_data = rds2py.as_sparse_matrix(count_matrix_RNA)
-
-# # Convert the sparse matrix to CSR format
-sparse_matrix = sp.csr_matrix(sp_rna_data)
-
-adata_RNA = sc.AnnData(X=sp_rna_data.transpose())
+adata_RNA = ad.read_hdf('gene_scores_ATACassays.h5', key="assay001")
 print(adata_RNA)
 
 
