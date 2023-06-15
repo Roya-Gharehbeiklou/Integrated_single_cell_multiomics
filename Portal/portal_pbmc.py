@@ -2,17 +2,28 @@ import portal
 import scanpy as sc
 import scipy.sparse as sp
 import rds2py
+import anndata2ri
 import h5py
 import anndata as ad
+import rpy2.robjects as ro
 
+ro.r['library']("DropSeq.util")
+ro.r['library']("Seurat")
+ro.r['library']("SingleCellExperiment")
+ro.r.assign("obj.path", "pbmc.RData")
+ro.r("load(obj.path)")
+ro.r("cnt <- pbmc@assays$RNA@counts")
+ro.r("celltype <- as.vector(pbmc$celltype)")
+ro.r("rm(pbmc)")
+ro.r("obj_sc <- CreateSeuratObject(counts=cnt)")
+ro.r("names(celltype) <- colnames(x = obj_sc)")
+ro.r("obj_sc <- AddMetaData(object = obj_sc, metadata = celltype, col.name = 'celltype')")
 
-count_matrix_RNA = rds2py.read_rds('count_matrix_RNA.rds')
-sp_rna_data = rds2py.as_sparse_matrix(count_matrix_RNA)
+ro.r("sce <- as.SingleCellExperiment(obj_sc)")
+anndata2ri.activate()
+adata_sc = ro.r('as(sce, "SingleCellExperiment")')
 
-# # Convert the sparse matrix to CSR format
-sparse_matrix = sp.csr_matrix(sp_rna_data)
-
-adata_RNA = sc.AnnData(X=sp_rna_data.transpose())
+adata_RNA = adata_sc
 print(adata_RNA)
 
 
