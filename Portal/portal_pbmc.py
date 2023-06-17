@@ -1,26 +1,77 @@
+import os
 import portal
 import scanpy as sc
+import numpy as np
 import scipy.sparse as sp
 import rds2py
 import anndata2ri
 import h5py
-import anndata as ad
+import anndata
+import scipy.io
+import pandas as pd
 
-adata_RNA = ad.read_hdf('gene_scores_ATACassays.h5', key="assay001")
-print(adata_RNA)
+np.random.seed(1234)
+
+sc.settings.verbosity = 3
+sc.logging.print_header()
 
 
-adata_ATAC = ad.read_hdf('gene_scores_ATACassays.h5', key="assay001")
-print(adata_ATAC)
+count_matrix_RNA = rds2py.read_rds('count_matrix_RNA.rds')
+sp_rna_data = rds2py.as_sparse_matrix(count_matrix_RNA)
+
+h5 = h5py.File('RNA_count.h5', "r")
+# h5_rna_data = h5['10Xpbmc/data']
+h5_rna_barcodes = h5['10Xpbmc/barcodes']
+h5_rna_features = h5['10Xpbmc/gene']
+h5_rna_gene_names = h5['10Xpbmc/gene_names']
+
+# rna_data = scipy.sparse.csr_matrix(np.array(h5_rna_data).transpose()).copy()
+rna_barcodes = np.array(h5_rna_barcodes).astype(str).copy()
+rna_features = np.array(h5_rna_features).astype(str).copy()
+rna_label = pd.read_csv('ancellTypes.csv', index_col = 0)
+
+adata_rna = sc.AnnData(X=sp_rna_data.transpose())
+
+adata_rna.obs.index = rna_barcodes
+adata_rna.obs["cell_type"] = rna_label["x"].values.astype(str)
+adata_rna.obs["data_type"] = "rna"
+adata_rna.var.index = rna_features
+print(adata_rna)
+
+adata_atac = anndata.read_hdf('gene_scores_ATACassays.h5', key="assay001")
+data_atac = h5py.File('ATAC_scores.h5', "r")
+h5_atac_barcodes = data_atac['matrix/barcodes']
+h5_atac_features = data_atac['matrix/features']
+h5_atac_cell_type = data_atac['matrix/celltypes']
+
+atac_barcodes = np.array(h5_atac_barcodes).astype(str).copy()
+atac_features = np.array(h5_atac_features).astype(str).copy()
+atac_cell_type = np.array(h5_atac_cell_type).astype(str).copy()
+
+adata_atac.obs.index = atac_barcodes
+adata_atac.obs["cell_type"] = atac_cell_type
+adata_atac.obs["data_type"] = "atac"
+adata_atac.var.index = atac_features
+print(adata_atac)
+
+meta_rna = adata_rna.obs
+meta_atac = adata_atac.obs
+
+meta = pd.concat([meta_rna, meta_atac], axis=0)# Print the shape of the AnnData object
 
 
-# Print the shape of the AnnData object
+# Create a folder for saving results
+result_path = "./result"
+if not os.path.exists(result_path):
+    os.makedirs(result_path)
+    
+    
+model = portal.model.Model(training_steps=3000, lambdacos=10.0)
+model.preprocess(adata_rna, adata_atac) # perform preprocess and PCA
+model.train() # train the model
+model.eval() # get integrated latent representation of cells
 
-# Create a Portal model
-model = portal.model.Model()
-model.preprocess(adata_RNA, adata_ATAC)  # Perform preprocess and PCA
-model.train()  # Train the model
-model.eval()  # Get integrated latent representation of cells
+portal.utils.plot_UMAP(model.latent, meta, colors=["data_type", "cell_type"], save=False, result_path=result_path)
 
 
 # Perform downstream analyses and visualizations using the integrated data
@@ -57,4 +108,3 @@ pdf.savefig()
 
 # Save the PDF file
 pdf.close()
-
