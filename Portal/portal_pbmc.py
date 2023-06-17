@@ -8,40 +8,50 @@ import anndata2ri
 import h5py
 import anndata
 import scipy.io
+import pandas as pd
+
 np.random.seed(1234)
 
 sc.settings.verbosity = 3
 sc.logging.print_header()
 
 
+count_matrix_RNA = rds2py.read_rds('count_matrix_RNA.rds')
+sp_rna_data = rds2py.as_sparse_matrix(count_matrix_RNA)
+
 h5 = h5py.File('RNA_count.h5', "r")
-h5_rna_data = h5['10Xpbmc/data']
+# h5_rna_data = h5['10Xpbmc/data']
 h5_rna_barcodes = h5['10Xpbmc/barcodes']
 h5_rna_features = h5['10Xpbmc/gene']
 h5_rna_gene_names = h5['10Xpbmc/gene_names']
-import pandas as pd
 
-rna_data = scipy.sparse.csr_matrix(np.array(h5_rna_data).transpose()).copy()
+# rna_data = scipy.sparse.csr_matrix(np.array(h5_rna_data).transpose()).copy()
 rna_barcodes = np.array(h5_rna_barcodes).astype(str).copy()
 rna_features = np.array(h5_rna_features).astype(str).copy()
 rna_label = pd.read_csv('ancellTypes.csv', index_col = 0)
 
-adata_rna = anndata.AnnData(rna_data)
-print("1--------", adata_rna)
+adata_rna = sc.AnnData(X=sp_rna_data.transpose())
 
 adata_rna.obs.index = rna_barcodes
 adata_rna.obs["cell_type"] = rna_label["x"].values.astype(str)
 adata_rna.obs["data_type"] = "rna"
 adata_rna.var.index = rna_features
-
 print(adata_rna)
+
 adata_atac = anndata.read_hdf('gene_scores_ATACassays.h5', key="assay001")
-adata_atac.obs.index = rna_barcodes
-adata_atac.obs["cell_type"] = rna_label["x"].values.astype(str)
+data_atac = h5py.File('ATAC_scores.h5', "r")
+h5_atac_barcodes = data_atac['matrix/barcodes']
+h5_atac_features = data_atac['matrix/features']
+h5_atac_cell_type = data_atac['matrix/celltypes']
+
+atac_barcodes = np.array(h5_atac_barcodes).astype(str).copy()
+atac_features = np.array(h5_atac_features).astype(str).copy()
+atac_cell_type = np.array(h5_atac_cell_type).astype(str).copy()
+
+adata_atac.obs.index = atac_barcodes
+adata_atac.obs["cell_type"] = atac_cell_type
 adata_atac.obs["data_type"] = "atac"
-
-adata_atac.var.index = rna_features
-
+adata_atac.var.index = atac_features
 print(adata_atac)
 
 meta_rna = adata_rna.obs
@@ -98,4 +108,3 @@ pdf.savefig()
 
 # Save the PDF file
 pdf.close()
-
