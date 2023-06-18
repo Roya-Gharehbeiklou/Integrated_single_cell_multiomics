@@ -71,7 +71,7 @@ model.preprocess(adata_rna, adata_atac) # perform preprocess and PCA
 model.train() # train the model
 model.eval() # get integrated latent representation of cells
 
-portal.utils.plot_UMAP(model.latent, meta, colors=["data_type", "cell_type"], save=False, result_path=result_path)
+portal.utils.plot_UMAP(model.latent, meta, colors=["data_type", "cell_type"], save=True, result_path=result_path)
 
 
 # Perform downstream analyses and visualizations using the integrated data
@@ -108,3 +108,4 @@ pdf.savefig()
 
 # Save the PDF file
 pdf.close()
+
