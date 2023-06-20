@@ -154,6 +154,14 @@ ATAC.se <- ATAC.se[startsWith(rowData(ATAC.se)$interval, 'c')]
 ATACgene.score.matrix <- ATACgene.score.matrix[,colnames(ATACgene.score.matrix) %in% cellsToKeep]
 saveRDS(ATACgene.score.matrix, '../Users/Roya/Portal_input/gene_activity_ATAC.rds')
 
+# Save ATAC gene scores as h5 file
+library(HDF5Array, lib.loc='ArchR_libs/')
+
+saveHDF5SummarizedExperiment(ATAC.se, dir="../Users/Roya/Portal_input/", prefix="gene_scores_ATAC", replace=FALSE,
+                             chunkdim=NULL, level=NULL, as.sparse=NA,
+                             verbose=NA)
+
+
 # Save for portal
 saveRDS(object=RNAmat, file='../Users/Roya/Portal_input/count_matrix_RNA.rds')
 
