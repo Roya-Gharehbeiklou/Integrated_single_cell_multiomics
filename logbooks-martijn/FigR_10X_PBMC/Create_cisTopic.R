@@ -1,10 +1,13 @@
-library(GenomicRanges)
-library(cisTopic)
+#library(GenomicRanges)
+#library(cisTopic)
 
 setwd('/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/data/output/')
 
 # Or for non singularity server
 library(GenomicRanges, lib.loc='../Fig_R_libs')
+library(Matrix, lib.loc='../Fig_R_libs')
+library(lgr, lib.loc='../Fig_R_libs')
+library(rsparse, lib.loc='../Fig_R_libs')
 library(cisTopic, lib.loc='../Fig_R_libs')
 
 # Example
