@@ -4,7 +4,6 @@ setwd('/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_
 getwd()
 
 ## For Singularity container
-## Load required packages
 
 # library(chromVAR)
 # library(S4Vectors)
@@ -16,7 +15,7 @@ getwd()
 
 # ## Even more dependencies
 # library(BuenColors)
-# library(BSgenome)
+# library(BSgenome)1: package ‘spatstat.core’ is not available for this version of R
 # library(BSgenome.Hsapiens.UCSC.hg38)
 # library(SeuratObject)
 # library(Seurat)
@@ -31,14 +30,9 @@ library(motifmatchr, lib.loc='Fig_R_libs')
 library(ggplot2, lib.loc='Fig_R_libs')
 library(S4Vectors, lib.loc='Fig_R_libs')
 library(GenomeInfoDb, lib.loc='Fig_R_libs')
-library(FigR, lib.loc = 'R_libs')
-
-#This first secstion (until UMAP) is the preprocessing/EDA part
-
-# More dependencies
+library(dplyr, lib.loc='Fig_R_libs')
+library(FigR, lib.loc = 'Fig_R_libs')
 library(FNN, lib.loc='Fig_R_libs')
-
-# Even more dependencies
 library(doParallel, lib.loc='Fig_R_libs')
 library(BuenColors, lib.loc='Fig_R_libs')
 library(BSgenome, lib.loc='Fig_R_libs')
@@ -50,16 +44,15 @@ library(rhdf5, lib.loc='ArchR_libs')
 library(ArchR, lib.loc='ArchR_libs')
 library(SummarizedExperiment, lib.loc='Fig_R_libs')
 
-addArchRThreads(threads = 21) 
+# Setting ArchR threads
+addArchRThreads(threads = 16) 
 
 seurat.object <- readRDS('../Users/Dilya/azimuth_results/pbmc_Seurat_Azimuth_for_figR.rds')
 RNAmat <- seurat.object@assays$RNA@data
+
+# Log10 normalize RNA count matrix
 RNAmat <- NormalizeData(RNAmat)
 dim(RNAmat)
-
-head(RNAmat)
-
-# ATAC.data.example <- readRDS('logbooks/FigR/FigR_build_in_data/shareseq_skin_SE_final.rds')
 
 ATAC.data <- readRDS('../Users/Roya/Save-ArchR-Project_subSet_QC_Frip.rds')
 getAvailableMatrices(ATAC.data)
@@ -76,19 +69,12 @@ ATACgene.score.matrix <- getMatrixFromProject(
 
 colnames(ATACgene.score.matrix) <- gsub("pbmc_granulocyte_sorted_10k_HG38#","",colnames(ATACgene.score.matrix))
 
-# Add feature matrix to ArchR project
-#fL <- getFragmentsFromProject(ATAC.data)
-#granges <- fL[[1]]
-
 # Load summarized experiment
 ATAC.se <- ArchR::import10xFeatureMatrix('output/pbmc_granulocyte_sorted_10k_filtered_feature_bc_matrix.h5', names='')
 colnames(ATAC.se)<-gsub("#","",colnames(ATAC.se))
 
 # Change rownames ATAC.data object
 rownames(ATAC.data@cellColData) <- gsub("pbmc_granulocyte_sorted_10k_HG38#","",rownames(ATAC.data@cellColData))
-
-# Get correct cells
-
 
 ## Get only specific celltypes
 plasma <- 'Plasma'
@@ -109,12 +95,12 @@ seurat.object@meta.data[seurat.object@meta.data$predicted.celltype.l2 %in% monoc
 seurat.object@meta.data[seurat.object@meta.data$predicted.celltype.l2 %in% nk, 'cell_type_lowerres'] <- 'NK'
 seurat.object@meta.data[seurat.object@meta.data$predicted.celltype.l2 %in% megakaryocyte, 'cell_type_lowerres'] <- 'megakaryocyte'
 
-
 # Loosing some barcodes
 seurat.object <- seurat.object[, !is.na(seurat.object@meta.data$cell_type_lowerres)]
 
 barcodes.atac <- rownames(ATAC.data@cellColData)
 barcodes.rnamat <- colnames(RNAmat)
+
 # Loosing more barcodes
 seurat.object <- seurat.object[, rownames(seurat.object@meta.data) %in% barcodes.atac]
 seurat.object <- seurat.object[, rownames(seurat.object@meta.data) %in% barcodes.rnamat]
@@ -133,44 +119,91 @@ ATAC.se <- ATAC.se[,colnames(ATAC.se) %in% cellsToKeep]
 RNAmat <- RNAmat[,colnames(RNAmat) %in% cellsToKeep]
 seurat.object <- seurat.object[,colnames(seurat.object) %in% cellsToKeep]
 
-celltypes.barcode <- data.frame(rownames(seurat.object@meta.data), seurat.object@meta.data$predicted.celltype.l2)
+celltypes.barcode <- data.frame(rownames(seurat.object@meta.data), seurat.object@meta.data$cell_type_lowerres)
 
 ATAC.se@colData <- DataFrame(celltypes.barcode)
 
 dim(ATAC.se)
 dim(RNAmat)
 
-library(pbmcapply, lib.loc="Fig_R_libs")
-#library(BSgenome, lib.loc='Fig_R_libs')
-#library(BSgenome.Hsapiens.UCSC.hg38, lib.loc='Fig_R_libs')
+###############
+# CREATING UMAP
+###############
 
-# Get correct ATAC.se levels
-#levels.atac.data.example <- seqnames(ATAC.data.example)
+# UMAP
+library(lgr, lib.loc='Fig_R_libs/')
+library(cisTopic, lib.loc='Fig_R_libs/')
+library(SingleCellExperiment, lib.loc='Fig_R_libs/')
+library(scuttle, lib.loc='Fig_R_libs/')
+library(scater, lib.loc='Fig_R_libs/')
 
-#library(gdata)
+annotation <- ATAC.se@colData$seurat.object.meta.data.cell_type_lowerres
+write.csv(annotation)
+
+ATAC.singlecell <- as(ATAC.se, "SingleCellExperiment")
+ATAC.singlecell <- scater::logNormCounts(ATAC.singlecell)
+u <- uwot::umap(as.matrix(t(counts(ATAC.singlecell))), n_neighbors=2)
+reducedDim(ATAC.singlecell, "UMAP_uwot") <- u
+celltypes.barcode$UMAP1 <- reducedDim(ATAC.singlecell, "UMAP_uwot")[,1]
+celltypes.barcode$UMAP2 <- reducedDim(ATAC.singlecell, "UMAP_uwot")[,2]
+
+ATAC.singlecell@colData <- DataFrame(celltypes.barcode)
+
+library(ggplot2, lib.loc='Fig_R_libs')
+
+colData(ATAC.singlecell) %>% as.data.frame() %>% ggplot(aes(UMAP1,UMAP2)) + 
+  geom_point(size=0.5) + scale_color_manual(values=annotation)+
+  theme_classic() + guides(colour = guide_legend(override.aes = list(size=2)))
+ggsave('../Users/Martijn/Integrated_single_cell_multiomics/logbooks-martijn/FigR_10X_PBMC/UMAP.png')
+
+##########
+# END UMAP
+##########
+
+# Getting chromosome names
+ATAC.chromosomes <- rowData(ATAC.se)$interval
+
+# Different starting name chromosomes
+deviating.names <- ATAC.chromosomes[!startsWith(ATAC.chromosomes, 'c')]
+normal.chroms <- ATAC.chromosomes[startsWith(ATAC.chromosomes, 'c')]
+#main.chroms <- standardChromosomes(BSgenome.Hsapiens.UCSC.hg38)
+
+
+# Fetching chromosome starting with a 'c'
 ATAC.se <- ATAC.se[startsWith(rowData(ATAC.se)$interval, 'c')]
 
 # Subset ATACgene.score.matrix also
 ATACgene.score.matrix <- ATACgene.score.matrix[,colnames(ATACgene.score.matrix) %in% cellsToKeep]
 saveRDS(ATACgene.score.matrix, '../Users/Roya/Portal_input/gene_activity_ATAC.rds')
 
+####################################################
+# SAVE RNA MATRIX AND ATAC SE TO H5 FOR PORTAL INPUT
+####################################################
+
 # Save ATAC gene scores as h5 file
 library(HDF5Array, lib.loc='ArchR_libs/')
 
-saveHDF5SummarizedExperiment(ATAC.se, dir="../Users/Roya/Portal_input/", prefix="gene_scores_ATAC", replace=FALSE,
+saveHDF5SummarizedExperiment(ATAC.se, dir="../Users/Roya/Portal_input", prefix="gene_scores_ATAC", replace=FALSE,
                              chunkdim=NULL, level=NULL, as.sparse=NA,
                              verbose=NA)
 
+# Save h5 for Portal
+library(scrattch.io, lib.loc='Fig_R_libs')
+library(rhdf5)
+write_dgCMatrix_h5(RNAmat, cols_are = "sample_names", '../Users/Roya/Portal_input/RNA_count.h5',
+  ref_name = "10Xpbmc", gene_ids = NULL)
 
-# Save for portal
-saveRDS(object=RNAmat, file='../Users/Roya/Portal_input/count_matrix_RNA.rds')
+###################
+# PEAK CORRELATIONS
+###################
 
+library(pbmcapply, lib.loc="Fig_R_libs")
 # Don't run interactively
 cisCorr <- FigR::runGenePeakcorr(ATAC.se = ATAC.se,
                            RNAmat = RNAmat,
-                           genome = "hg38", # One of hg19, mm10 or hg38 
-                           nCores = 21,
-                           p.cut = NULL, # Set this to NULL and we can filter later
+                           genome = "hg38",
+                           nCores = 16,
+                           p.cut = NULL,
                            n_bg = 100)
 
 write.table(cisCorr, '/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Martijn/Integrated_single_cell_multiomics/logbooks-martijn/FigR_10X_PBMC/output/ciscor.csv', quote=FALSE, sep="\t")
@@ -178,7 +211,6 @@ cisCorr <- read.csv('../Users/Martijn/Integrated_single_cell_multiomics/logbooks
 head(cisCorr)
 
 cisCorr.filt <- cisCorr %>% filter(pvalZ <= 0.05)
-
 dorcGenes <- dorcJPlot(dorcTab = cisCorr.filt,
                          cutoff = 3, # No. sig peaks needed to be called a DORC
                          labelTop = 20,
@@ -198,24 +230,57 @@ dorcMat <- getDORCScores(ATAC.se = ATAC.se, # Has to be same SE as used in previ
 
 dim(dorcMat)
 
-## Load cisTopic
+#################################
+# Create cisTopicObject
+#################################
+
+library(lgr, lib.loc='Fig_R_libs')
+library(cisTopic, lib.loc='Fig_R_libs')
+
+# Change rownames to correct format
+colnames(ATAC.se@assays@data$counts)<-gsub("#","",colnames(ATAC.se@assays@data$counts))
+rownames(ATAC.se@assays@data$counts) <- ATAC.se@rowRanges$interval
+
+count.matrix <- ATAC.se@assays@data$counts
+
+atac <- as.matrix(count.matrix)
+atac <- as.data.frame(atac)
+
+# we need to work out the names of the rownames, and replace - into : to match the chromosome:start-end required format by cisTopic
+rownames(atac) <- make.unique(rowRanges(ATAC.se)$interval)
+
+cisTopicObject <- createcisTopicObject(
+  atac,
+  project.name = "cisTopicProject",
+  min.cells = 1,
+  min.regions = 1,
+  is.acc = 1,
+  keepCountsMatrix = TRUE
+)
+
+saveRDS(cisTopicObject, '/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Martijn/Integrated_single_cell_multiomics/logbooks-martijn/cisTopic/cisTopicObject.rds')
 
 
+## Load cisTopic and fetch matrix
 
-cisAssign <- readRDS("../Users/Martijn/Integrated_single_cell_multiomics/logbooks-martijn/cisTopic/cisTopicObject.rds")
+cisTopicObject <- readRDS("../Users/Martijn/Integrated_single_cell_multiomics/logbooks-martijn/cisTopic/best_cisTopicObject.rds")
+topic.mat <- modelMatSelection(cisTopicObject, 'cell', 'Probability')
+topic.mat <- t(topic.mat)
+topic.mat <- as.matrix(topic.mat)
 
-cisAssign <- cisAssign[cellsToKeep,]
+# Derive cell kNN using this
+set.seed(123)
+cellkNN <- get.knn(topic.mat,k = 30)$nn.index
+dim(cellkNN)
+rownames(cellkNN) <- cellsToKeep
 
+colnames(dorcMat) <- rownames(cellkNN)
 # Smooth dorc scores using cell KNNs (k=30)
-#dorcMat.s <- smoothScoresNN(NNmat = cellkNN[,1:30],mat = dorcMat,nCores = 4)
+dorcMat.s <- smoothScoresNN(NNmat = cellkNN[,1:30],mat = dorcMat,nCores = 4)
 
 # Smooth RNA using cell KNNs
 # This takes longer since it's all genes
-#RNAmat.s <- smoothScoresNN(NNmat = cellkNN[,1:30],mat = RNAmat,nCores = 4)
-
-library(BiocManager, lib.loc='Fig_R_libs')
-library(BSgenome, lib.loc='Fig_R_libs')
-library(BSgenome.Hsapiens.UCSC.hg38, lib.loc='ArchR_libs')
+RNAmat.s <- smoothScoresNN(NNmat = cellkNN[,1:30],mat = RNAmat,nCores = 4)
 
 #######################################################################
 # CHANGED THE runFigRGRN SO IT WORKS, PROBLEM WAS THE LIBRARIES LOADING
@@ -389,27 +454,53 @@ runFigRGRN <- function(ATAC.se, # SE of scATAC peak counts. Needed for chromVAR 
   TFenrich.d
 }
 
+library(BiocManager, lib.loc='Fig_R_libs')
+library(BSgenome, lib.loc='Fig_R_libs')
+library(BSgenome.Hsapiens.UCSC.hg38, lib.loc='Fig_R_libs')
+
+.libPaths('Fig_R_libs')
+
+if(!require(BSgenome.Hsapiens.UCSC.hg38)){
+    install.packages("BSgenome.Hsapiens.UCSC.hg38")
+    library(BSgenome.Hsapiens.UCSC.hg38)
+}
+
+
 figR.d <- runFigRGRN(ATAC.se = ATAC.se, # Must be the same input as used in runGenePeakcorr()
                      dorcTab = cisCorr.filt, # Filtered peak-gene associations
                      genome = "hg38",
-                     dorcMat = dorcMat,
-                     rnaMat = RNAmat, 
+                     dorcMat = dorcMat.s,
+                     rnaMat = RNAmat.s, 
                      nCores = 21)
 
 saveRDS(figR.d, '/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Martijn/Integrated_single_cell_multiomics/logbooks-martijn/FigR_10X_PBMC/output/figRGRN.rds')
 
+library(BuenColors, lib.loc='Fig_R_libs')
+require(ggrastr)
+
 figR.scatter <- figR.d %>% 
   ggplot(aes(Corr.log10P,Enrichment.log10P,color=Score)) + 
-  xlim(-10,10) +
   ggrastr::geom_point_rast(size=0.01,shape=16) + 
   theme_classic() + 
-  scale_color_gradientn(colours = jdb_palette("solar_extra"),limits=c(-3,3))
+  xlim(-5, 10) +
+  scale_color_gradientn(colours = jdb_palette("solar_extra"),limits=c(-3,3),oob = scales::squish,breaks=scales::breaks_pretty(n=3))
 
 ggsave('/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Martijn/Integrated_single_cell_multiomics/logbooks-martijn/FigR_10X_PBMC/output/TF-DORC-scatter.png')
 
-rank.drivers <- rankDrivers(figR.d,rankBy = "meanScore",interactive = FALSE)
-ggsave('/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Martijn/Integrated_single_cell_multiomics/logbooks-martijn/FigR_10X_PBMC/output/rank_drivers.png', rank.drivers, width=6, height=3)
+figR.d.subset <- figR.d[figR.d$Score > 0,]
 
+figR.scatter.subset <- figR.d.subset %>% 
+  ggplot(aes(Corr.log10P,Enrichment.log10P,color=Score)) + 
+  ggrastr::geom_point_rast(size=1,shape=16) + 
+  theme_classic() + 
+  xlim(-5, 10) +
+  scale_color_gradientn(colours = jdb_palette("solar_extra"),limits=c(-3,3),oob = scales::squish,breaks=scales::breaks_pretty(n=3))
+
+ggsave('/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Martijn/Integrated_single_cell_multiomics/logbooks-martijn/FigR_10X_PBMC/output/TF-DORC-scatter-subset.png')
+
+rank.drivers <- rankDrivers(figR.d,rankBy = "meanScore",interactive = FALSE)
+rank.drivers + geom_text_repel() + geom_label_repel() + cowplot::theme_cowplot() + labs()
+ggsave('/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Martijn/Integrated_single_cell_multiomics/logbooks-martijn/FigR_10X_PBMC/output/rank_drivers.png', rank.drivers, width=20, height=6)
 
 plt.drivers <- plotDrivers(figR.d,score.cut = 2, marker="TSG-AG1")
 
@@ -417,11 +508,21 @@ ggsave('logbooks/FigR/FigR_plots/plot-drivers.png', plt.drivers)
 
 library(ComplexHeatmap)
 library(png)
-png("logbooks/FigR/FigR_plots/complex-heatmap.png")
+png("/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Martijn/Integrated_single_cell_multiomics/logbooks-martijn/FigR_10X_PBMC/output/complex-heatmap.png", width=5,height=5,units="in",res=1200)
 
 plotfigRHeatmap(figR.d = figR.d,
-                score.cut=0,
+                score.cut = 0.1,
                 column_names_gp = gpar(fontsize=6), # from ComplexHeatmap
                 show_row_dend = FALSE # from ComplexHeatmap
                 )
 dev.off()
+
+library(networkD3, lib.loc='Fig_R_libs')
+d3 <- plotfigRNetwork(figR.d,
+                score.cut = 0.1,
+                weight.edges = TRUE)
+
+save_d3_html(
+  d3,
+  'network_tutorial_rna_n_atac.html',
+)
