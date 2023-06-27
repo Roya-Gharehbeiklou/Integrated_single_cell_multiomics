@@ -11,4 +11,4 @@
 
 module load RPlus
 
-Rscript FigR-peak-cor.R &> FigR-peak-cor.txt
+Rscript Peak-correlations.R &> Peak-correlations.txt
