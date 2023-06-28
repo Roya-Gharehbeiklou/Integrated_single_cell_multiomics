@@ -15,6 +15,9 @@ library(SingleCellExperiment, lib.loc='Fig_R_libs')
 library(scuttle, lib.loc='Fig_R_libs')
 library(scater, lib.loc='Fig_R_libs')
 
+# Ouput directory
+outdir = '/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Martijn/Integrated_single_cell_multiomics/FigR/output/'
+
 # Setting ArchR threads
 addArchRThreads(threads = 16) 
 
@@ -122,8 +125,8 @@ library(rhdf5)
 write_dgCMatrix_h5(RNAmat, cols_are = "sample_names", '../Users/Roya/Portal_input/RNA_count.h5',
   ref_name = "10Xpbmc", gene_ids = NULL)
 
-saveRDS(ATAC.se, '/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Martijn/Integrated_single_cell_multiomics/FigR/output/ATAC_se.rds')
-saveRDS(RNAmat, '/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Martijn/Integrated_single_cell_multiomics/FigR/output/RNA_mat.rds')
+saveRDS(ATAC.se, paste0(outdir, 'ATAC_se.rds')
+saveRDS(RNAmat, paste0(outidr, 'RNA_mat.rds')
 
 #################################
 # Creating UMAP
@@ -134,4 +137,4 @@ ATAC.sce <- runUMAP(ATAC.sce)
 UMAP.plot <- plotReducedDim(ATAC.sce, dimred="UMAP", colour_by="Cell type") +
     theme_classic()
 
-ggsave('/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Martijn/Integrated_single_cell_multiomics/FigR/output/UMAP.png', UMAP.plot)
+ggsave(paste0(outdir,'UMAP.png'), UMAP.plot)

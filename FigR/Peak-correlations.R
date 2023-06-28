@@ -13,9 +13,11 @@ library(pbmcapply, lib.loc="Fig_R_libs")
 library(BSgenome, lib.loc='Fig_R_libs')
 library(BSgenome.Hsapiens.UCSC.hg38, lib.loc='Fig_R_libs')
 
+datadir = '/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Martijn/Integrated_single_cell_multiomics/FigR/output/'
+
 # Load both objects
-ATAC.se <- readRDS('../Users/Martijn/Integrated_single_cell_multiomics/FigR/output/ATAC_se.rds')
-RNAmat <- readRDS('../Users/Martijn/Integrated_single_cell_multiomics/FigR/output/RNA_mat.rds')
+ATAC.se <- readRDS(paste0(datadir, 'ATAC_se.rds'))
+RNAmat <- readRDS(paste0(datadir,'RNA_mat.rds'))
 
 # Don't run interactively
 cisCorr <- FigR::runGenePeakcorr(ATAC.se = ATAC.se,
@@ -25,6 +27,6 @@ cisCorr <- FigR::runGenePeakcorr(ATAC.se = ATAC.se,
                            p.cut = NULL,
                            n_bg = 100)
 
-write.table(cisCorr, '/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Martijn/Integrated_single_cell_multiomics/logbooks-martijn/FigR_10X_PBMC/output/ciscor.csv', quote=FALSE, sep="\t")
-cisCorr <- read.csv('../Users/Martijn/Integrated_single_cell_multiomics/logbooks-martijn/FigR_10X_PBMC/output/ciscor.csv', sep="\t")
+write.table(cisCorr, paste0(datadir, 'ciscor.csv'), quote=FALSE, sep="\t")
+cisCorr <- read.csv(paste0(datadir, 'ciscor.csv'), sep="\t")
 head(cisCorr)
