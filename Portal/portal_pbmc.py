@@ -66,46 +66,129 @@ if not os.path.exists(result_path):
     os.makedirs(result_path)
     
     
-model = portal.model.Model(training_steps=3000, lambdacos=10.0)
-model.preprocess(adata_rna, adata_atac) # perform preprocess and PCA
+model = portal.model.Model(training_steps=3000, npcs=20, n_latent=30, lambdacos=50.0)
+#  At npcs=20, n_latent=30, lambdacos=50.0 and hvg_num=12000, we saw the best overlap
+model.preprocess(adata_rna, adata_atac, hvg_num=12000) # perform preprocess and PCA
 model.train() # train the model
 model.eval() # get integrated latent representation of cells
 
 portal.utils.plot_UMAP(model.latent, meta, colors=["data_type", "cell_type"], save=True, result_path=result_path)
 
+import umap
+import matplotlib.pyplot as plt
 
-# Perform downstream analyses and visualizations using the integrated data
-integrated_data = model.integrated
 
-# Save the integrated and analyzed data
-integrated_data.write("integrated_and_analyzed_data.h5ad")
+reducer = umap.UMAP(n_neighbors=30,
+                    n_components=2,
+                    metric="correlation",
+                    n_epochs=None,
+                    learning_rate=1.0,
+                    min_dist=0.3,
+                    spread=1.0,
+                    set_op_mix_ratio=1.0,
+                    local_connectivity=1,
+                    repulsion_strength=1,
+                    negative_sample_rate=5,
+                    a=None,
+                    b=None,
+                    random_state=1234,
+                    metric_kwds=None,
+                    angular_rp_forest=False,
+                    verbose=True)
 
-# Set up PDF file for saving figures
-pdf_path = "figures.pdf"
-pdf = PdfPages(pdf_path)
+embedding = reducer.fit_transform(model.latent)
 
-# UMAP visualization
-sc.pp.neighbors(integrated_data)
-sc.tl.umap(integrated_data)
-sc.pl.umap(integrated_data, color=['RNA', 'ATAC'])
-pdf.savefig()
+n_cells = embedding.shape[0]
+size = 120000 / n_cells
 
-# Cluster analysis
-sc.pp.neighbors(integrated_data)
-sc.tl.leiden(integrated_data)
-sc.pl.umap(integrated_data, color=['leiden'])
-pdf.savefig()
 
-# Differential gene expression analysis
-sc.tl.rank_genes_groups(integrated_data, groupby='leiden')
-sc.pl.rank_genes_groups(integrated_data, n_genes=10, sharey=False)
-pdf.savefig()
+import os
+import numpy as np
+import pandas as pd
+import scanpy as sc
+from sklearn import preprocessing
+from matplotlib.colors import ListedColormap
+import matplotlib.pyplot as plt
+from matplotlib.cm import get_cmap
+import matplotlib as mpl
+import umap
+import anndata
 
-# Heatmap of gene expression
-genes_of_interest = ['Gene1', 'Gene2', 'Gene3']
-sc.pl.heatmap(integrated_data, var_names=genes_of_interest, groupby='leiden', cmap='viridis')
-pdf.savefig()
+sc.settings.verbosity = 3
+sc.logging.print_header()
+sc.settings.set_figure_params(dpi=80, facecolor='white')
 
-# Save the PDF file
-pdf.close()
+rgb_10 = [i for i in get_cmap('Set3').colors]
+rgb_20 = [i for i in get_cmap('tab20').colors]
+rgb_20b = [i for i in get_cmap('tab20b').colors]
 
+rgb2hex_10 = [mpl.colors.rgb2hex(color) for color in rgb_10]
+rgb2hex_20 = [mpl.colors.rgb2hex(color) for color in rgb_20]
+rgb2hex_20b = [mpl.colors.rgb2hex(color) for color in rgb_20b]
+rgb2hex_20b_new = [rgb2hex_20b[i] for i in [0, 3, 4, 7, 8, 11, 12, 15, 16, 19]]
+rgb2hex = rgb2hex_20 + rgb2hex_20b_new
+
+
+meta.loc[meta.cell_type.values.astype(str) == "unknown", "cell_type"] = "Unknown"
+meta.loc[meta.data_type.values.astype(str) == "rna", "data_type"] = "rna-seq"
+meta.loc[meta.data_type.values.astype(str) == "atac", "data_type"] = "atac-seq"
+
+
+n_cells = embedding.shape[0]
+if n_cells >= 15000:
+    size = 120000 / n_cells
+else:
+    size = 8
+
+le = preprocessing.LabelEncoder()
+le.fit(sorted(set(meta["data_type"])))
+label = le.fit_transform(meta["data_type"].values)
+colours = ListedColormap(["tab:blue", "tab:orange"])
+
+le2 = preprocessing.LabelEncoder()
+le2.fit(sorted(set(meta["cell_type"])))
+label2 = le.fit_transform(meta["cell_type"].values)
+colours2 = ListedColormap(rgb2hex_20b_new)
+
+
+f = plt.figure(figsize=(20,10))
+
+ax1 = f.add_subplot(1,2,1)
+scatter1 = ax1.scatter(embedding[:, 0][::-1], embedding[:, 1][::-1], s=size, c=label[::-1], cmap=colours, label=meta["data_type"].values[::-1])
+ax1.set_title("Method", fontsize=40)
+ax1.tick_params(axis='both',bottom=False, top=False, left=False, right=False, labelleft=False, labelbottom=False, grid_alpha=0)
+# celltype
+ax12 = f.add_subplot(1,2,2)
+scatter2 = ax12.scatter(embedding[:, 0], embedding[:, 1], s=size, c=label2, cmap=colours2, label=meta["cell_type"].values)
+ax12.set_title("Cell type", fontsize=40)
+ax12.tick_params(axis='both',bottom=False, top=False, left=False, right=False, labelleft=False, labelbottom=False, grid_alpha=0)
+
+
+l1 = f.legend(handles=scatter1.legend_elements()[0], labels=sorted(set(meta["data_type"])), loc="upper left", bbox_to_anchor=(1.0, 0.9), 
+              markerscale=3., title_fontsize=30, fontsize=20, frameon=False, ncol=1, title="Method")
+l2 = f.legend(handles=scatter2.legend_elements(num=len(sorted(set(meta["cell_type"]))))[0], labels=sorted(set(meta["cell_type"])), loc="upper left", bbox_to_anchor=(1.0, 0.7), 
+              markerscale=3., title_fontsize=30, fontsize=20, frameon=False, ncol=1, title="Cell type")
+l1._legend_box.align = "left"
+l2._legend_box.align = "left"
+
+f.subplots_adjust(hspace=.1, wspace=.1)
+
+plt.savefig('result.png', bbox_inches='tight')
+
+file = h5py.File('output.h5', 'w')
+
+# Create a group for the DataFrame
+df_group = file.create_group('meta')
+
+# Convert the DataFrame to a NumPy array and save it within the group
+df_group.create_dataset('values', data=meta.values)
+df_group.create_dataset('index', data=meta.index.values)
+
+# Create a group for the NumPy array
+arr_group = file.create_group('model')
+
+# Save the NumPy array within the group
+arr_group.create_dataset('latent', data=model.latent)
+
+# Close the HDF5 file
+file.close()
