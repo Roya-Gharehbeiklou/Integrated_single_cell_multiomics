@@ -14,6 +14,7 @@ setwd("/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_
 
 library(ArchR, lib.loc="/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/data/ArchR_libs")
 #ArchR::installExtraPackages()
+library('BSgenome.Hsapiens.UCSC.hg38')
 
 set.seed(1)
 # settting the threads to one, if not there is a problem when inferring the doublets and creating the arrow files. read: https://github.com/GreenleafLab/ArchR/issues/218  for more information
@@ -82,18 +83,45 @@ plotPDF(p1,p2, name = "Plot-UMAP-Sample-Clusters.pdf",
         ArchRProj = proj, addDOC = FALSE, width = 5, height = 5)
 
 # Saving ArchRProject
-proj <- saveArchRProject(ArchRProj = proj)
+#saveArchRProject(ArchRProj = proj)
 
 # loadArchRProject
-# proj <- loadArchRProject(path =/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Roya )
+# proj <- loadArchRProject(path ='/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Roya')
+
+# addGroupCoverage
+proj<-addGroupCoverages(ArchRProj = proj, groupBy = "Clusters")
+
+ # Saving ArchRProject
+#saveArchRProject(ArchRProj = proj)
+# loadArchRProject
+# proj <- loadArchRProject(path ='/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Roya')
+
+
+# Calling Peaks w/ TileMatrix
+# FRiP (fraction of reads in peaks: 
+#how many of total reads aligned to regions defined as “peaks” after pseudo-bulking) > 0.5
+
+projTmp <- addReproduciblePeakSet(
+    ArchRProj =  proj, 
+    groupBy = "Clusters",
+    peakMethod = "Tiles",
+    method = "p"
+)
+
+getPeakSet(projTmp)
+# Adding Peak Matrix
+proj_peak_matrix <- addPeakMatrix(projTmp)
+getAvailableMatrices(proj_peak_matrix)
+
+
+
+
+##########################################
 seGeneScore_proj <- getGroupSE(ArchRProj = proj, useMatrix = "GeneScoreMatrix", groupBy = "Clusters")
 saveRDS(seGeneScore_proj, file='seGeneScore_proj.rds')
 seGeneScore_proj <- readRDS('seGeneScore_proj.rds')
 
 ######
-# Adding Peak Matrix
-proj_peak_matrix <- addPeakMatrix(proj)
-getAvailableMatrices(proj_peak_matrix)
 
 # Export Group Summarized Experiment
 seGeneScore <- getGroupSE(ArchRProj = proj_peak_matrix, useMatrix = "GeneScoreMatrix", groupBy = "Clusters")
@@ -107,11 +135,8 @@ seGroupMotif <- getGroupSE(ArchRProj = proj_peak_matrix, useMatrix = "MotifMatri
 
 
 #######
-
-
-
-how data should look like
+#how data should look like
 
 prueba<-readRDS('/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/data/logbooks/FigR/FigR_build_in_data/shareseq_skin_SE_final.rds')
 
-## sparse Matrix of class "dgCMatrix"
+
