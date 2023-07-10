@@ -32,7 +32,7 @@ topic.mat <- as.matrix(topic.mat)
 
 # Derive cell kNN using this
 set.seed(123)
-cellkNN <- get.knn(topic.mat,k = 10)$nn.index
+cellkNN <- get.knn(topic.mat,k = 35)$nn.index
 dim(cellkNN)
 rownames(cellkNN) <- rownames(topic.mat)
 
@@ -63,15 +63,20 @@ dorcMat <- getDORCScores(ATAC.se = ATAC.se, # Has to be same SE as used in previ
                          geneList = dorcGenes,
                          nCores = 21)
 
+saveRDS(dorcMat, paste0(datadir, 'dorc_mat.rds'))
+
 dim(dorcMat)
 colnames(dorcMat) <- rownames(cellkNN)
 
 # Smooth dorc scores using cell KNNs (k=30)
-dorcMat.s <- smoothScoresNN(NNmat = cellkNN[,1:10],mat = dorcMat,nCores = 4)
+dorcMat.s <- smoothScoresNN(NNmat = cellkNN[,1:35],mat = dorcMat,nCores = 21)
 
 # Smooth RNA using cell KNNs
 # This takes longer since it's all genes
-RNAmat.s <- smoothScoresNN(NNmat = cellkNN[,1:10],mat = RNAmat,nCores = 4)
+RNAmat.s <- smoothScoresNN(NNmat = cellkNN[,1:35],mat = RNAmat,nCores = 21)
+
+dorcMat.s <- readRDS(paste0(datadir, 'dorcMat_smoothed.rds'))
+RNAmat.s <- readRDS(paste0(datadir, 'RNAMat_smoothed.rds'))
 
 # Create UMAP of top DORC
 ATAC.sce <- logNormCounts(as(ATAC.se, 'SingleCellExperiment'))
@@ -82,10 +87,11 @@ umap <- reducedDim(ATAC.sce)
 
 umap.d <- as.data.frame(umap)
 
-dorcg <- plotMarker2D(umap.d,dorcMat.s,markers = c("TRG-AS1"),maxCutoff = "q0.99",colorPalette = "brewer_heat") + ggtitle("TRG-AS1 DORC")
+dorcg <- plotMarker2D(umap.d,dorcMat.s,markers = c("TET3"),maxCutoff = "q0.99",colorPalette = "brewer_heat") + ggtitle("TRG-AS1 DORC")
 # RNA for Dlx3
-rnag <- plotMarker2D(umap.d,RNAmat.s,markers = c("TRG-AS1"),maxCutoff = "q0.99",colorPalette = "brewer_purple") + ggtitle("TRG-AS1 RNA")
+rnag <- plotMarker2D(umap.d,RNAmat.s,markers = c("TET3"),maxCutoff = "q0.99",colorPalette = "brewer_purple") + ggtitle("TRG-AS1 RNA")
 
+# Plot specific markers
 pdf(paste0(datadir,'top-dorc.pdf'), width=7, height=5)
 par(mfrow=c(2,1))
 plotMarker2D(umap.d,dorcMat.s,markers = c("TRG-AS1"),maxCutoff = "q0.99",colorPalette = "brewer_heat") + ggtitle("TRG-AS1 DORC")+

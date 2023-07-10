@@ -125,12 +125,10 @@ library(rhdf5)
 write_dgCMatrix_h5(RNAmat, cols_are = "sample_names", '../Users/Roya/Portal_input/RNA_count.h5',
   ref_name = "10Xpbmc", gene_ids = NULL)
 
-saveRDS(ATAC.se, paste0(outdir, 'ATAC_se.rds')
-saveRDS(RNAmat, paste0(outidr, 'RNA_mat.rds')
+saveRDS(ATAC.se, paste0(outdir, 'ATAC_se.rds'))
+saveRDS(RNAmat, paste0(outidr, 'RNA_mat.rds'))
 
-#################################
 # Creating UMAP
-#################################
 ATAC.sce <- logNormCounts(as(ATAC.se, 'SingleCellExperiment'))
 
 ATAC.sce <- runUMAP(ATAC.sce)
