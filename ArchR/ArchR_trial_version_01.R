@@ -1,115 +1,91 @@
+#srun --cpus-per-task=1 --mem=10gb --nodes=1 --qos=interactive --time=05:00:00 --pty bash -i
+# module load RPlus
+# R
+# run in /groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/data/ArchR_libs
+
+# Erase all existing variables
+rm(list=ls())
+
 # Set working directory
-setwd("/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/data/output/ArchRinputfiles")
+setwd("/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Roya")
 
-# Files needed for the analyses
-#pbmc_granulocyte_sorted_10k_atac_fragments.tsv.gz 
-#dpbmc_granulocyte_sorted_10k_atac_fragments.tsv.gz.tbi
-#pbmc_granulocyte_sorted_10k_filtered_feature_bc_matrix.h5
+# Set the library path
+.libPaths('/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/data/ArchR_libs')
 
-suppressPackageStartupMessages(library(ArchR))
+library(ArchR, lib.loc="/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/data/ArchR_libs")
+#ArchR::installExtraPackages()
+
+set.seed(1)
+# settting the threads to one, if not there is a problem when inferring the doublets and creating the arrow files. read: https://github.com/GreenleafLab/ArchR/issues/218  for more information
+addArchRThreads(threads = 1)
 addArchRGenome("hg38")
 
-addArchRThreads(10)
-
 #Get Input Fragment Files
-inputFiles <- getInputFiles("pbmc_granulocyte_sorted_10k")[1]
+inputFile <- getInputFiles("/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/data/output")[1]
+inputFile
 
-names(inputFiles) <- "pbmc_granulocyte_sorted_10k"
+names(inputFile) <- "pbmc_granulocyte_sorted_10k_HG38"
 
-# #Create Arrow Files
-# ArrowFiles <- createArrowFiles(
-#   inputFiles = inputFile,
-#   sampleNames = names(inputFile),
-#   minTSS = 4,
-#   minFrags = 1000,
-#   force = TRUE
-# )
+# Create Arrow Files and setting QC values 
+ArrowFiles <- createArrowFiles(
+  inputFiles = inputFile,
+  sampleNames = names(inputFile),
+  minTSS = 4,
+  minFrags = 1000,
+  force = TRUE
+)
 
-# ArrowFiles
-ArrowFiles <-readRDS('/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Roya/ArrowFiles/arrowfile.rds')
 ArrowFiles 
 
-#ArchRProject
-proj <- ArchRProject(ArrowFiles)
+# Inferring Doublets
+# Had to load IRanges seperately
+library(IRanges, lib.loc='/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/data/ArchR_libs')
+# Problem with seqnames, had to load it this way
+seqnames <- GenomicRanges::seqnames
 
-#Import scRNA
-seRNA <- import10xFeatureMatrix(
-  input = c("pbmc_granulocyte_sorted_10k_filtered_feature_bc_matrix.h5"),
-  names = c("pbmc_granulocyte_sorted_10k")
+doubScores <- addDoubletScores(
+    input = ArrowFiles,
+    k = 10,
+    knnMethod = "UMAP", #Refers to the embedding to use for nearest neighbor search with doublet projection.
+    LSIMethod = 1
 )
 
-seRNA
-
-#Add scRNA
-proj <- addGeneExpressionMatrix(input = proj, seRNA = seRNA, force = TRUE)
-
-#Filter Cells ###  QC parameters. # FRiP QC value is missing
-proj <- proj[proj$TSSEnrichment >= 4 & proj$nFrags >= 1000 & !is.na(proj$Gex_nUMI)]
-
-
-#Doublet Filtration. Currently disabled just for tutorial. If you want to filter doublets uncomment below.
-proj <- addDoubletScores(proj)
-proj <- filterDoublets(proj, cutEnrich = 1) # is cutEnrich = 1 ok? 
-
-#LSI-ATAC
-proj <- addIterativeLSI(
-  ArchRProj = proj, 
-  clusterParams = list(
-    resolution = 0.2, 
-    sampleCells = 10000,
-    n.start = 10
-  ),
-  saveIterations = FALSE,
-  useMatrix = "TileMatrix", 
-  depthCol = "nFrags",
-  name = "LSI_ATAC"
+# Creating an ArchRProject 
+proj <- ArchRProject(
+  ArrowFiles = ArrowFiles, 
+  outputDirectory = "/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Roya",
+  copyArrows = TRUE #This is recommened so that you maintain an unaltered copy for later usage. Output: Copying ArrowFiles to Ouptut Directory! If you want to save disk space set copyArrows = FALSE
 )
+getAvailableMatrices(proj)
 
-#LSI-RNA
-proj <- addIterativeLSI(
-  ArchRProj = proj, 
-  clusterParams = list(
-    resolution = 0.2, 
-    sampleCells = 10000,
-    n.start = 10
-  ),
-  saveIterations = FALSE,
-  useMatrix = "GeneExpressionMatrix", 
-  depthCol = "Gex_nUMI",
-  varFeatures = 2500,
-  firstSelection = "variable",
-  binarize = FALSE,
-  name = "LSI_RNA"
-)
+# filter putative doublets 
+proj <- filterDoublets(ArchRProj = proj)
+# Output: Filtering 1479 cells from ArchRProject! pbmc_granulocyte_sorted_10k_HG38 : 1479 of 12162 (12.2%)
 
-#Combined Dims
-proj <- addCombinedDims(proj, reducedDims = c("LSI_ATAC", "LSI_RNA"), name =  "LSI_Combined")
+#Dimensionality Reduction and Clustering
+proj <- addIterativeLSI(ArchRProj = proj, useMatrix = "TileMatrix", name = "IterativeLSI")
+proj <- addClusters(input = proj, reducedDims = "IterativeLSI")
+# output: Number of nodes: 10683, Number of edges: 423036
 
-#UMAPs
-proj <- addUMAP(proj, reducedDims = "LSI_ATAC", name = "UMAP_ATAC", minDist = 0.8, force = TRUE)
+# Visualizing in a 2D UMAP Embedding
+proj <- addUMAP(ArchRProj = proj, reducedDims = "IterativeLSI")
 
-proj <- addUMAP(proj, reducedDims = "LSI_Combined", name = "UMAP_Combined", minDist = 0.8, force = TRUE)
+# color by 'sample'
+p1 <- plotEmbedding(ArchRProj = proj, colorBy = "cellColData", name = "Sample", embedding = "UMAP")
 
-#Add Clusters
-proj <- addClusters(proj, reducedDims = "LSI_Combined", name = "Clusters", resolution = 0.4, force = TRUE)
+# color by “Clusters”
+p2 <- plotEmbedding(ArchRProj = proj, colorBy = "cellColData", name = "Clusters", embedding = "UMAP")
 
-#Plot Embedding
-p1 <- plotEmbedding(proj, name = "Clusters", embedding = "UMAP_ATAC", size = 1.5, labelAsFactors=F, labelMeans=F)
+# To save an editable vectorized version of this plot
+# plotPDF(p1,p2, name = "Plot-UMAP-Sample-Clusters.pdf",
+#        ArchRProj = proj, addDOC = FALSE, width = 5, height = 5)
 
-p2 <- plotEmbedding(proj, name = "Clusters", embedding = "UMAP_RNA", size = 1.5, labelAsFactors=F, labelMeans=F)
+# Saving ArchRProject
+proj <- saveArchRProject(ArchRProj = proj)
 
-p3 <- plotEmbedding(proj, name = "Clusters", embedding = "UMAP_Combined", size = 1.5, labelAsFactors=F, labelMeans=F)
+# loadArchRProject
+# proj <- loadArchRProject(path =/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Roya )
 
-#Print Plots
-p1
-p2
-p3
-
-#Save Plot
-plotPDF(p1, p2, p3, name = "UMAP-scATAC-scRNA-Combined", addDOC = FALSE)
-
-#Print Session Info
-sessionInfo()
 
 
 

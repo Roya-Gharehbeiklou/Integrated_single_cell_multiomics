@@ -1,113 +1,3 @@
-setwd('/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/data/')
-
-library(Matrix, lib.loc='Fig_R_libs')
-library(chromVAR, lib.loc = 'Fig_R_libs')
-library(motifmatchr, lib.loc='Fig_R_libs')
-library(ggplot2, lib.loc='Fig_R_libs')
-library(S4Vectors, lib.loc='Fig_R_libs')
-library(GenomeInfoDb, lib.loc='Fig_R_libs')
-library(FigR, lib.loc ='Fig_R_libs')
-
-cisCorr <- read.csv('logbooks/FigR/FigR_data/ciscorr.csv', sep='\t')
-
-cisCorr.filt <- cisCorr %>% filter(pvalZ <= 0.05)
-
-# Set cutoff to 2 for gaining results
-dorcGenes <- dorcJPlot(dorcTab = cisCorr.filt,
-                         cutoff = 10, # No. sig peaks needed to be called a DORC
-                         labelTop = 20,
-                         returnGeneList = TRUE, # Set this to FALSE for just the plot
-                         force=2)
-ggsave('logbooks/FigR/FigR_plots/DORCS.png')
-
-## Table significant associated peaks
-
-# Unfiltered
-numDorcs <- cisCorr.filt %>% group_by(Gene) %>% tally() %>% arrange(desc(n))
-numDorcs
-
-## Visualizing DORCs
-
-ATAC.se <- readRDS('logbooks/FigR/FigR_build_in_data/shareseq_skin_SE_final.rds')
-set.seed(123)
-cellsToKeep <- sample(colnames(ATAC.se),size = 10000,replace = FALSE)
-
-RNAmat <- readRDS("logbooks/FigR/FigR_build_in_data/shareseq_skin_RNAnorm_final.rds") # Normalized
-
-ATAC.se <- ATAC.se[,cellsToKeep]
-RNAmat <- RNAmat[,cellsToKeep]
-
-# Remove genes with zero expression across all cells
-RNAmat <- RNAmat[Matrix::rowSums(RNAmat)!=0,]
-
-cisAssign <- readRDS("logbooks/FigR/FigR_build_in_data/shareseq_skin_cisTopicPs.rds")
-dim(cisAssign) # Cells x Topics
-
-all(cellsToKeep %in% rownames(cisAssign))
-
-# Subset
-cisAssign <- cisAssign[cellsToKeep,]
-
-# Derive cell kNN using this
-library(FNN, lib.loc='Fig_R_libs')
-set.seed(123)
-cellkNN <- get.knn(cisAssign,k = 30)$nn.index
-dim(cellkNN)
-rownames(cellkNN) <- colnames(ATAC.se)
-
-annoCols <- readRDS("logbooks/FigR/FigR_build_in_data/shareseq_skin_annoCols.rds")
-
-# package pbmcapply not found, so loaded below
-library(pbmcapply, lib.loc='Fig_R_libs')
-dorcMat <- getDORCScores(ATAC.se = ATAC.se, # Has to be same SE as used in previous step
-                         dorcTab = cisCorr.filt,
-                         geneList = dorcGenes,
-                         nCores = 16)
-
-dim(dorcMat)
-
-## Smoothing counts and visualize with expression
-library(doParallel, lib.loc='Fig_R_libs')
-# Smooth dorc scores using cell KNNs (k=30)
-dorcMat.s <- smoothScoresNN(NNmat = cellkNN[,1:30],mat = dorcMat,nCores = 16)
-
-# Smooth RNA using cell KNNs
-# This takes longer since it's all genes
-RNAmat.s <- smoothScoresNN(NNmat = cellkNN[,1:30],mat = RNAmat,nCores = 16)
-
-# Visualize on pre-computed UMAP
-umap.d <- as.data.frame(colData(ATAC.se)[,c("UMAP1","UMAP2")])
-
-# DORC score for Pxn
-# ggrastr error so load module
-library(ggrastr, lib.loc='Fig_R_libs')
-library(BuenColors, lib.loc='Fig_R_libs')
-
-dorcg <- plotMarker2D(umap.d,dorcMat.s,markers = c("Dlx3"),maxCutoff = "q0.99",colorPalette = "brewer_heat") + ggtitle("Dlx3 DORC")
-
-ggsave('logbooks/FigR/FigR_plots/dorc-Dlx3.png', dorcg)
-
-# RNA for Dlx3
-rnag <- plotMarker2D(umap.d,RNAmat.s,markers = c("Dlx3"),maxCutoff = "q0.99",colorPalette = "brewer_purple") + ggtitle("Dlx3 RNA")
-ggsave('logbooks/FigR/FigR_plots/rna-Dlx3.png', rnag)
-
-# Package for plotting side to side
-# Installed using: devtools::install_github("thomasp85/patchwork")
-library(patchwork, lib.loc='Fig_R_libs')
-
-Dlx3.combined <- dorcg + rnag
-ggsave('logbooks/FigR/FigR_plots/Dlx3-both.png', Dlx3.combined)
-
-## TF gene associations 
-
-#library(doParallel, lib.loc='R_libs')
-#library(FigR, lib.loc='R_libs')
-#library(foreach, lib.loc='R_libs')
-#library(Matrix, lib.loc='R_libs')
-#library(doSNOW, lib.loc='R_libs')
-
-library(BSgenome.Mmusculus.UCSC.mm10, lib.loc='Fig_R_libs')
-
 #######################################################################
 # CHANGED THE runFigRGRN SO IT WORKS, PROBLEM WAS THE LIBRARIES LOADING
 #######################################################################
@@ -280,11 +170,13 @@ runFigRGRN <- function(ATAC.se, # SE of scATAC peak counts. Needed for chromVAR 
   TFenrich.d
 }
 
-figR.d <- runFigRGRN(ATAC.se = ATAC.se, # Must be the same input as used in runGenePeakcorr()
-                     dorcTab = cisCorr.filt, # Filtered peak-gene associations
-                     genome = "mm10",
-                     dorcMat = dorcMat.s,
-                     rnaMat = RNAmat.s,
-                     nCores=21)
+library(BiocManager, lib.loc='Fig_R_libs')
+library(BSgenome, lib.loc='Fig_R_libs')
+library(BSgenome.Hsapiens.UCSC.hg38, lib.loc='Fig_R_libs')
 
-saveRDS(figR.d, 'logbooks/FigR/FigR_data/GRN.rds')
+.libPaths('Fig_R_libs')
+
+if(!require(BSgenome.Hsapiens.UCSC.hg38)){
+    install.packages("BSgenome.Hsapiens.UCSC.hg38")
+    library(BSgenome.Hsapiens.UCSC.hg38)
+}

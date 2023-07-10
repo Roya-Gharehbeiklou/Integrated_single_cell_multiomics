@@ -9,8 +9,6 @@
 #SBATCH --export=NONE
 #SBATCH --get-user-env=L
 
-cd /groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/data/logbooks
-
 module load RPlus
 
-Rscript FigR-part-1.R &> part-1.txt
+Rscript Peak-correlations.R &> Peak-correlations.txt
