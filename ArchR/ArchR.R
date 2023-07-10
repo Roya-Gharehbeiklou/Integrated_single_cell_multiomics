@@ -36,6 +36,8 @@ ArrowFiles <- createArrowFiles(
 )
 
 ArrowFiles 
+#saveRDS(ArrowFiles, file='ArrowFiles.rds')
+#ArrowFiles<- readRDS('ArrowFiles.rds')
 
 # Inferring Doublets
 # Had to load IRanges seperately
@@ -45,7 +47,7 @@ seqnames <- GenomicRanges::seqnames
 
 doubScores <- addDoubletScores(
     input = ArrowFiles,
-    k = 10,
+    k = 10, #Refers to how many cells near a "pseudo-doublet" to count.
     knnMethod = "UMAP", #Refers to the embedding to use for nearest neighbor search with doublet projection.
     LSIMethod = 1
 )
@@ -56,7 +58,7 @@ proj <- ArchRProject(
   outputDirectory = "/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Roya",
   copyArrows = TRUE #This is recommened so that you maintain an unaltered copy for later usage. Output: Copying ArrowFiles to Ouptut Directory! If you want to save disk space set copyArrows = FALSE
 )
-getAvailableMatrices(proj)
+getAvailableMatrices(proj) #  "GeneScoreMatrix" "TileMatrix"
 
 # filter putative doublets 
 proj <- filterDoublets(ArchRProj = proj)
@@ -65,7 +67,6 @@ proj <- filterDoublets(ArchRProj = proj)
 #Dimensionality Reduction and Clustering
 proj <- addIterativeLSI(ArchRProj = proj, useMatrix = "TileMatrix", name = "IterativeLSI")
 proj <- addClusters(input = proj, reducedDims = "IterativeLSI")
-# output: Number of nodes: 10683, Number of edges: 423036
 
 # Visualizing in a 2D UMAP Embedding
 proj <- addUMAP(ArchRProj = proj, reducedDims = "IterativeLSI")
@@ -77,15 +78,40 @@ p1 <- plotEmbedding(ArchRProj = proj, colorBy = "cellColData", name = "Sample", 
 p2 <- plotEmbedding(ArchRProj = proj, colorBy = "cellColData", name = "Clusters", embedding = "UMAP")
 
 # To save an editable vectorized version of this plot
-# plotPDF(p1,p2, name = "Plot-UMAP-Sample-Clusters.pdf",
-#        ArchRProj = proj, addDOC = FALSE, width = 5, height = 5)
+plotPDF(p1,p2, name = "Plot-UMAP-Sample-Clusters.pdf",
+        ArchRProj = proj, addDOC = FALSE, width = 5, height = 5)
 
 # Saving ArchRProject
 proj <- saveArchRProject(ArchRProj = proj)
 
 # loadArchRProject
 # proj <- loadArchRProject(path =/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Roya )
+seGeneScore_proj <- getGroupSE(ArchRProj = proj, useMatrix = "GeneScoreMatrix", groupBy = "Clusters")
+saveRDS(seGeneScore_proj, file='seGeneScore_proj.rds')
+seGeneScore_proj <- readRDS('seGeneScore_proj.rds')
+
+######
+# Adding Peak Matrix
+proj_peak_matrix <- addPeakMatrix(proj)
+getAvailableMatrices(proj_peak_matrix)
+
+# Export Group Summarized Experiment
+seGeneScore <- getGroupSE(ArchRProj = proj_peak_matrix, useMatrix = "GeneScoreMatrix", groupBy = "Clusters")
+
+# Motif Footprinting
+motifPositions <- getPositions(proj_peak_matrix)
+motifPositions
+
+seGroupMotif <- getGroupSE(ArchRProj = proj_peak_matrix, useMatrix = "MotifMatrix", groupBy = "Clusters")
 
 
 
+#######
 
+
+
+how data should look like
+
+prueba<-readRDS('/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/data/logbooks/FigR/FigR_build_in_data/shareseq_skin_SE_final.rds')
+
+## sparse Matrix of class "dgCMatrix"
