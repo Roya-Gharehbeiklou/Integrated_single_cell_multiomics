@@ -14,6 +14,13 @@ library(cisTopic, lib.loc='Fig_R_libs')
 library(FNN, lib.loc='Fig_R_libs')
 library(pbmcapply, lib.loc='Fig_R_libs')
 library(doParallel, lib.loc='Fig_R_libs')
+library(SingleCellExperiment, lib.loc='Fig_R_libs')
+library(scuttle, lib.loc='Fig_R_libs')
+library(scater, lib.loc='Fig_R_libs')
+library(ggrastr, lib.loc='Fig_R_libs')
+library(MASS, lib.loc='Fig_R_libs')
+library(BuenColors, lib.loc='Fig_R_libs')
+library(patchwork, lib.loc='Fig_R_libs')
 
 datadir = '/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Martijn/Integrated_single_cell_multiomics/FigR/output/'
 
@@ -25,7 +32,7 @@ topic.mat <- as.matrix(topic.mat)
 
 # Derive cell kNN using this
 set.seed(123)
-cellkNN <- get.knn(topic.mat,k = 30)$nn.index
+cellkNN <- get.knn(topic.mat,k = 35)$nn.index
 dim(cellkNN)
 rownames(cellkNN) <- rownames(topic.mat)
 
@@ -56,15 +63,40 @@ dorcMat <- getDORCScores(ATAC.se = ATAC.se, # Has to be same SE as used in previ
                          geneList = dorcGenes,
                          nCores = 21)
 
+saveRDS(dorcMat, paste0(datadir, 'dorc_mat.rds'))
+
 dim(dorcMat)
 colnames(dorcMat) <- rownames(cellkNN)
 
 # Smooth dorc scores using cell KNNs (k=30)
-dorcMat.s <- smoothScoresNN(NNmat = cellkNN[,1:30],mat = dorcMat,nCores = 4)
+dorcMat.s <- smoothScoresNN(NNmat = cellkNN[,1:35],mat = dorcMat,nCores = 21)
 
 # Smooth RNA using cell KNNs
 # This takes longer since it's all genes
-RNAmat.s <- smoothScoresNN(NNmat = cellkNN[,1:30],mat = RNAmat,nCores = 4)
+RNAmat.s <- smoothScoresNN(NNmat = cellkNN[,1:35],mat = RNAmat,nCores = 21)
+
+dorcMat.s <- readRDS(paste0(datadir, 'dorcMat_smoothed.rds'))
+RNAmat.s <- readRDS(paste0(datadir, 'RNAMat_smoothed.rds'))
+
+# Create UMAP of top DORC
+ATAC.sce <- logNormCounts(as(ATAC.se, 'SingleCellExperiment'))
+
+ATAC.sce <- runUMAP(ATAC.sce)
+
+umap <- reducedDim(ATAC.sce)
+
+umap.d <- as.data.frame(umap)
+
+dorcg <- plotMarker2D(umap.d,dorcMat.s,markers = c("TET3"),maxCutoff = "q0.99",colorPalette = "brewer_heat") + ggtitle("TRG-AS1 DORC")
+# RNA for Dlx3
+rnag <- plotMarker2D(umap.d,RNAmat.s,markers = c("TET3"),maxCutoff = "q0.99",colorPalette = "brewer_purple") + ggtitle("TRG-AS1 RNA")
+
+# Plot specific markers
+pdf(paste0(datadir,'top-dorc.pdf'), width=7, height=5)
+par(mfrow=c(2,1))
+plotMarker2D(umap.d,dorcMat.s,markers = c("TRG-AS1"),maxCutoff = "q0.99",colorPalette = "brewer_heat") + ggtitle("TRG-AS1 DORC")+
+plotMarker2D(umap.d,RNAmat.s,markers = c("TRG-AS1"),maxCutoff = "q0.99",colorPalette = "brewer_purple") + ggtitle("TRG-AS1 RNA")
+dev.off()
 
 saveRDS(dorcMat.s, paste0(datadir, 'dorcMat_smoothed.rds'))
 saveRDS(RNAmat.s, paste0(datadir, 'RNAMat_smoothed.rds'))
