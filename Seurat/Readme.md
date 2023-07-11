@@ -6,6 +6,7 @@ _Code File:_ `Seurat_10x.r`
 This is the readme to understand how to perfome the code to analyse the PBMC 10X data and _create a Seurat object_. QC parameters are applied.
 
 #### General comments
+- R version (4.2.1)
 - _Seurat version 4_ was used.
 - Necessary libraries to run the analysis:
     - library(dplyr)
