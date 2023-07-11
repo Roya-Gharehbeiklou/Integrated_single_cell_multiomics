@@ -17,7 +17,7 @@ In this project, we take advantage of state-of-the-art single-cell multiomics da
 
 ### Installing
 
-* Each tools is illustarted in the specific Folder 
+* Each tools installation is illustarted in the specific Folder 
 
 
 ## Authors
