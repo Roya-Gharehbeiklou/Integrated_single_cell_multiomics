@@ -1,3 +1,4 @@
+#Author: Roya Gharehbeikou
 ## This script runs FigR on the 10X data
 ## Add config file w/ paths in final pipline
 setwd('/groups/umcg-franke-scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/data/')
