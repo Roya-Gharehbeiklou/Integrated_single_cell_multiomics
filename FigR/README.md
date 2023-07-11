@@ -11,7 +11,7 @@ Please take a close look at the files listed below which should be ran in the sa
     - `pbmc_granulocyte_sorted_10k_filtered_feature_bc_matrix.h5`: Filtered barcode matrix containing RNA counts (non-normalized).
     - `Save-ArchR-Project_subSet_QC_Frip.rds` - `ArchR` preprocessed object.
   - Output, `Portal` input:
-    - `gene_scores_ATACassays.h5` - Gene scores matrix from `AtchR`.
+    - `gene_scores_ATACassays.h5` - Gene scores matrix from `ArchR`.
     - `RNA_count.h5` - RNA Count matrix. 
   - Output `FigR`:
     - `ATAC_se.rds` - Summarized Experiment with ATAC count matrix.
@@ -53,6 +53,7 @@ Please take a close look at the files listed below which should be ran in the sa
     - `figRGRN.rds`: GRN of the preprocessed data.
   - Output:
     - Several plots of the GRN.
-
-    
+10. `Parse_portal.ipynb` - Short script parsing `Portal output`.
+  - Input:
+    - `output.h5`: Output file from `Portal`
 
