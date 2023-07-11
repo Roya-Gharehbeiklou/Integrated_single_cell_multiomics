@@ -87,6 +87,8 @@ Using Portal in Integrating single-cells multiomics data
     ```shell
     scp /data scrna/tmp01/projects/multiome/ongoing/students_hanze_2023/Users/Roya/Portal_input/
     ```
+- gene_scores_ATACassays.h5 - Gene scores matrix from ArchR.
+- RNA_count.h5 - RNA Count matrix
 
 ### Retrieving Results
 
