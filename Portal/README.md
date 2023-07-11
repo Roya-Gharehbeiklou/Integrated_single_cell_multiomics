@@ -1,7 +1,8 @@
 # Project Name
 Using Portal in Integrating single-cells multiomics data 
-Portal codes are modified by @Roya Gharehbeikloo - r.gharehbeiklou@st.hanze.nl
-Project Description
+- Portal codes are modified by r.gharehbeiklou@st.hanze.nl
+
+- Project Description
 
 ## Table of Contents
 - [Installation](#installation)
